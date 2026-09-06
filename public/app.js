@@ -139,6 +139,7 @@
 
     return {
       symbol, company, market, zone, candleFormation: formation, price, low, high, distance,
+      formed: first(r, ["formed"], null),
       status: suppliedStatus ? String(suppliedStatus) : null,
       demo: Boolean(r.demo),
       raw: r
@@ -162,6 +163,13 @@
   function fmt(n, digits = 2) {
     if (n === null || n === undefined || Number.isNaN(n)) return "—";
     return Number(n).toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  function fmtFormed(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "—";
+    const date = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== value) return "—";
+    return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric", timeZone: "UTC" });
   }
 
   function fmtDistance(n) {
@@ -207,6 +215,7 @@
         <td>${escapeHtml(r.market)}</td>
         <td class="zone-tag">${escapeHtml(r.zone)}</td>
         <td class="${formationClass}">${escapeHtml(r.candleFormation)}</td>
+        <td>${fmtFormed(r.formed)}</td>
         <td>${fmt(r.price)}</td>
         <td>${r.low === null && r.high === null ? "—" : `${fmt(r.low)} — ${fmt(r.high)}`}</td>
       </tr>`;

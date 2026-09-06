@@ -94,7 +94,7 @@
 
   function extractRows(payload) {
     if (Array.isArray(payload)) return payload;
-    const candidates = ["rows", "data", "results", "stocks", "signals", "items", "levels", "watchlist"];
+    const candidates = ["rows", "data", "results", "stocks", "signals", "items", "levels", "watchlist", "alerts"];
     for (const key of candidates) {
       if (Array.isArray(payload?.[key])) return payload[key];
     }
@@ -235,7 +235,7 @@
   }
 
   function extractLastScan(payload) {
-    const raw = first(payload || {}, ["lastScan","last_scan","lastUpdated","last_updated","timestamp","meta.lastScan","meta.last_scan"], null);
+    const raw = first(payload || {}, ["lastScan","last_scan","lastUpdated","last_updated","timestamp","meta.lastScan","meta.last_scan","updatedAt"], null);
     if (!raw) return "Feed connected · daily scanner";
     const date = new Date(raw);
     return Number.isNaN(date.valueOf()) ? `Last daily scan · ${raw}` : `Last daily scan · ${date.toLocaleString()}`;

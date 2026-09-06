@@ -176,10 +176,13 @@
 
   function filteredRows() {
     const q = searchTerm.trim().toLowerCase();
+    const interest = interestedSet();
     return rows
-      .filter(r => activeFilter === "all" || r.zone.toLowerCase() === activeFilter)
+      .filter(r => activeFilter === "interested" ? interest.has(r.symbol) : activeFilter === "all" || r.zone.toLowerCase() === activeFilter)
       .filter(r => !q || r.symbol.toLowerCase().includes(q) || r.company.toLowerCase().includes(q))
       .sort((a, b) => {
+        const priority = Number(interest.has(b.symbol)) - Number(interest.has(a.symbol));
+        if (priority) return priority;
         const ad = a.distance ?? Number.POSITIVE_INFINITY;
         const bd = b.distance ?? Number.POSITIVE_INFINITY;
         return Math.abs(ad) - Math.abs(bd) || a.symbol.localeCompare(b.symbol);
@@ -189,6 +192,8 @@
   function render() {
     const interest = interestedSet();
     const list = filteredRows();
+    const interestedCount = new Set(rows.filter(r => interest.has(r.symbol)).map(r => r.symbol)).size;
+    interestedFilter.textContent = `Interested ${interestedCount}`;
     els.body.innerHTML = list.map((r, i) => {
       const st = statusFor(r);
       const on = interest.has(r.symbol);
@@ -299,6 +304,12 @@
     els.dialogAlertDistance.value = String(n);
     render();
   }
+
+  const interestedFilter = document.createElement("button");
+  interestedFilter.type = "button";
+  interestedFilter.className = "seg";
+  interestedFilter.dataset.filter = "interested";
+  document.querySelector(".segmented").append(interestedFilter);
 
   els.search.addEventListener("input", e => { searchTerm = e.target.value; render(); });
   document.querySelectorAll(".seg").forEach(btn => {

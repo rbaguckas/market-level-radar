@@ -1,0 +1,356 @@
+(() => {
+  const STORAGE = {
+    scannerUrl: "mlr.scannerUrl",
+    alertDistance: "mlr.alertDistance",
+    interested: "mlr.interested"
+  };
+
+  const DEMO_ROWS = [
+    {
+      symbol: "NVDA", company: "NVIDIA · DEMO", market: "NASDAQ", zone: "FVG",
+      candleFormation: "Bullish", price: 171.66, low: 169.80, high: 170.42, distance: 0.72, status: "Demo", demo: true
+    },
+    {
+      symbol: "TSM", company: "TSMC · DEMO", market: "NYSE", zone: "Order block",
+      candleFormation: "Bullish", price: 235.18, low: 232.40, high: 233.60, distance: 0.68, status: "Demo", demo: true
+    }
+  ];
+
+  let rows = [...DEMO_ROWS];
+  let activeFilter = "all";
+  let searchTerm = "";
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    body: $("radarBody"),
+    empty: $("emptyState"),
+    search: $("searchInput"),
+    scannerUrl: $("scannerUrl"),
+    connect: $("connectBtn"),
+    refresh: $("refreshBtn"),
+    settings: $("settingsBtn"),
+    feedBadge: $("feedBadge"),
+    connectPanel: $("connectPanel"),
+    reporting: $("reportingCount"),
+    lastScan: $("lastScan"),
+    signalCount: $("signalCount"),
+    fvgCount: $("fvgCount"),
+    obCount: $("obCount"),
+    alertDistance: $("alertDistance"),
+    saveSettings: $("saveSettingsBtn"),
+    dialog: $("settingsDialog"),
+    dialogScannerUrl: $("dialogScannerUrl"),
+    dialogAlertDistance: $("dialogAlertDistance"),
+    dialogSave: $("dialogSaveBtn"),
+    disconnect: $("disconnectBtn")
+  };
+
+  const state = {
+    get scannerUrl() { return (localStorage.getItem(STORAGE.scannerUrl) || "").trim(); },
+    set scannerUrl(v) { v ? localStorage.setItem(STORAGE.scannerUrl, v.trim()) : localStorage.removeItem(STORAGE.scannerUrl); },
+    get alertDistance() {
+      const n = Number(localStorage.getItem(STORAGE.alertDistance));
+      return Number.isFinite(n) && n >= 0 ? n : 1.0;
+    },
+    set alertDistance(v) { localStorage.setItem(STORAGE.alertDistance, String(v)); },
+    get interested() {
+      try { return new Set(JSON.parse(localStorage.getItem(STORAGE.interested) || "[]")); }
+      catch { return new Set(); }
+    },
+    set interested(set) { localStorage.setItem(STORAGE.interested, JSON.stringify([...set])); }
+  };
+
+  function first(obj, keys, fallback = null) {
+    for (const key of keys) {
+      const value = key.split(".").reduce((acc, part) => acc?.[part], obj);
+      if (value !== undefined && value !== null && value !== "") return value;
+    }
+    return fallback;
+  }
+
+  function num(value) {
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (value === null || value === undefined || value === "") return null;
+    const cleaned = String(value).replace(/[%,$\s]/g, "");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function normalizeZone(raw) {
+    const z = String(raw || "").trim();
+    if (!z) return "—";
+    if (/order\s*block|\bob\b/i.test(z)) return "Order block";
+    if (/fvg|fair\s*value\s*gap/i.test(z)) return "FVG";
+    return z;
+  }
+
+  function normalizeFormation(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "—";
+    if (/bull|up|long|green/i.test(s)) return "Bullish";
+    if (/bear|down|short|red/i.test(s)) return "Bearish";
+    return s;
+  }
+
+  function extractRows(payload) {
+    if (Array.isArray(payload)) return payload;
+    const candidates = ["rows", "data", "results", "stocks", "signals", "items", "levels", "watchlist"];
+    for (const key of candidates) {
+      if (Array.isArray(payload?.[key])) return payload[key];
+    }
+    // Some Apps Script endpoints return an object keyed by ticker.
+    if (payload && typeof payload === "object") {
+      const ignored = new Set(["status","meta","settings","lastScan","last_scan","timestamp","message","success","count"]);
+      const entries = Object.entries(payload).filter(([k, v]) => !ignored.has(k) && v && typeof v === "object" && !Array.isArray(v));
+      if (entries.length >= 2 && entries.some(([k]) => /^[A-Z.\-]{1,7}$/i.test(k))) {
+        return entries.map(([symbol, value]) => ({ symbol, ...value }));
+      }
+    }
+    return [];
+  }
+
+  function normalizeRow(r, idx) {
+    const range = first(r, ["range", "levelRange", "zoneRange"], null);
+    let low = num(first(r, ["low","lower","zoneLow","zone_low","levelLow","level_low","rangeLow","bottom","min"], null));
+    let high = num(first(r, ["high","upper","zoneHigh","zone_high","levelHigh","level_high","rangeHigh","top","max"], null));
+
+    if ((low === null || high === null) && range && typeof range === "object") {
+      low ??= num(first(range, ["low","lower","min","bottom"], null));
+      high ??= num(first(range, ["high","upper","max","top"], null));
+    }
+    if ((low === null || high === null) && typeof range === "string") {
+      const parts = range.match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
+      if (parts.length >= 2) { low ??= parts[0]; high ??= parts[1]; }
+    }
+
+    const price = num(first(r, ["price","currentPrice","current_price","last","close","lastPrice"], null));
+    let distance = num(first(r, ["distance","distancePct","distance_pct","distancePercent","distance_percent","proximity","proximityPct"], null));
+    if (distance === null && price !== null && low !== null && high !== null && price !== 0) {
+      const nearest = price < low ? low : price > high ? high : price;
+      distance = Math.abs((price - nearest) / price) * 100;
+    }
+
+    const symbol = String(first(r, ["symbol","ticker","code"], `ROW${idx+1}`)).trim().toUpperCase();
+    const company = String(first(r, ["company","companyName","company_name","name"], symbol)).trim();
+    const zone = normalizeZone(first(r, ["zone","zoneType","zone_type","type","signalType","signal_type"], "—"));
+    const formation = normalizeFormation(first(r, ["candleFormation","candle_formation","formation","direction","bias"], "—"));
+    const market = String(first(r, ["market","exchange","venue"], "—")).trim();
+    const suppliedStatus = first(r, ["status","state","signalStatus","signal_status"], null);
+
+    return {
+      symbol, company, market, zone, candleFormation: formation, price, low, high, distance,
+      status: suppliedStatus ? String(suppliedStatus) : null,
+      demo: Boolean(r.demo),
+      raw: r
+    };
+  }
+
+  function statusFor(row) {
+    if (row.demo) return "Demo";
+    if (row.status) return row.status;
+    if (row.distance !== null && Math.abs(row.distance) <= state.alertDistance) return "Alert";
+    return "Tracking";
+  }
+
+  function statusClass(status) {
+    const s = String(status).toLowerCase();
+    if (s.includes("demo")) return "status-demo";
+    if (s.includes("alert") || s.includes("within") || s.includes("near") || s.includes("active")) return "status-alert";
+    return "status-tracking";
+  }
+
+  function fmt(n, digits = 2) {
+    if (n === null || n === undefined || Number.isNaN(n)) return "—";
+    return Number(n).toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  function fmtDistance(n) {
+    return n === null || n === undefined || Number.isNaN(n) ? "—" : `${fmt(Math.abs(n), 2)}%`;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  }
+
+  function interestedSet() { return state.interested; }
+
+  function filteredRows() {
+    const q = searchTerm.trim().toLowerCase();
+    return rows
+      .filter(r => activeFilter === "all" || r.zone.toLowerCase() === activeFilter)
+      .filter(r => !q || r.symbol.toLowerCase().includes(q) || r.company.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const ad = a.distance ?? Number.POSITIVE_INFINITY;
+        const bd = b.distance ?? Number.POSITIVE_INFINITY;
+        return Math.abs(ad) - Math.abs(bd) || a.symbol.localeCompare(b.symbol);
+      });
+  }
+
+  function render() {
+    const interest = interestedSet();
+    const list = filteredRows();
+    els.body.innerHTML = list.map((r, i) => {
+      const st = statusFor(r);
+      const on = interest.has(r.symbol);
+      const formationClass = /bull/i.test(r.candleFormation) ? "candle-up" : /bear/i.test(r.candleFormation) ? "candle-down" : "";
+      return `<tr class="${on ? "interested" : ""}">
+        <td class="num-col">${i + 1}</td>
+        <td class="company-cell"><div class="company">${escapeHtml(r.company)}</div><div class="ticker">${escapeHtml(r.symbol)}</div></td>
+        <td><span class="status ${statusClass(st)}">${escapeHtml(st)}</span></td>
+        <td class="distance">${fmtDistance(r.distance)}</td>
+        <td><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button></td>
+        <td>${escapeHtml(r.market)}</td>
+        <td class="zone-tag">${escapeHtml(r.zone)}</td>
+        <td class="${formationClass}">${escapeHtml(r.candleFormation)}</td>
+        <td>${fmt(r.price)}</td>
+        <td>${r.low === null && r.high === null ? "—" : `${fmt(r.low)} — ${fmt(r.high)}`}</td>
+      </tr>`;
+    }).join("");
+
+    els.empty.classList.toggle("hidden", list.length > 0);
+
+    els.body.querySelectorAll("[data-interest]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const set = interestedSet();
+        const symbol = btn.dataset.interest;
+        set.has(symbol) ? set.delete(symbol) : set.add(symbol);
+        state.interested = set;
+        render();
+      });
+    });
+
+    const realRows = rows.filter(r => !r.demo);
+    els.reporting.textContent = realRows.length || rows.length;
+    const threshold = state.alertDistance;
+    els.signalCount.textContent = String(rows.filter(r => r.distance !== null && Math.abs(r.distance) <= threshold).length).padStart(2, "0");
+    els.fvgCount.textContent = String(rows.filter(r => r.zone === "FVG").length).padStart(2, "0");
+    els.obCount.textContent = String(rows.filter(r => r.zone === "Order block").length).padStart(2, "0");
+  }
+
+  function setConnectedUi(connected, detail = "") {
+    els.feedBadge.textContent = connected ? "US data feed connected" : "US data feed not connected";
+    els.feedBadge.className = `badge ${connected ? "badge-good" : "badge-warn"}`;
+    els.connectPanel.classList.toggle("hidden", connected);
+    if (detail) els.lastScan.textContent = detail;
+  }
+
+  function extractLastScan(payload) {
+    const raw = first(payload || {}, ["lastScan","last_scan","lastUpdated","last_updated","timestamp","meta.lastScan","meta.last_scan"], null);
+    if (!raw) return "Feed connected · daily scanner";
+    const date = new Date(raw);
+    return Number.isNaN(date.valueOf()) ? `Last daily scan · ${raw}` : `Last daily scan · ${date.toLocaleString()}`;
+  }
+
+  async function fetchScanner() {
+    const url = state.scannerUrl;
+    if (!url) {
+      rows = [...DEMO_ROWS];
+      setConnectedUi(false, "Awaiting feed · last daily scan");
+      render();
+      return;
+    }
+
+    els.refresh.disabled = true;
+    els.refresh.textContent = "Refreshing…";
+    try {
+      const u = new URL(url);
+      u.searchParams.set("_", Date.now().toString());
+      const res = await fetch(u.toString(), { method: "GET", cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      let payload;
+      try { payload = JSON.parse(text); }
+      catch {
+        // Apps Script can occasionally wrap JSON in text; try to locate the JSON body.
+        const start = Math.min(...["[","{"].map(ch => {
+          const i = text.indexOf(ch);
+          return i === -1 ? Number.POSITIVE_INFINITY : i;
+        }));
+        if (!Number.isFinite(start)) throw new Error("Scanner did not return JSON");
+        payload = JSON.parse(text.slice(start));
+      }
+
+      if (payload?.success === false || payload?.error) {
+        throw new Error(payload?.error?.message || payload?.error || payload?.message || "Scanner returned an error");
+      }
+
+      const incoming = extractRows(payload).map(normalizeRow).filter(r => r.symbol);
+      if (!incoming.length) throw new Error("Scanner connected, but no stock rows were found in its response.");
+
+      rows = incoming;
+      setConnectedUi(true, extractLastScan(payload));
+      render();
+    } catch (err) {
+      console.error(err);
+      rows = [...DEMO_ROWS];
+      setConnectedUi(false, `Feed error · ${err.message}`);
+      render();
+    } finally {
+      els.refresh.disabled = false;
+      els.refresh.textContent = "Refresh";
+    }
+  }
+
+  function saveAlertDistance(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return;
+    state.alertDistance = n;
+    els.alertDistance.value = String(n);
+    els.dialogAlertDistance.value = String(n);
+    render();
+  }
+
+  els.search.addEventListener("input", e => { searchTerm = e.target.value; render(); });
+  document.querySelectorAll(".seg").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".seg").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      activeFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  els.connect.addEventListener("click", () => {
+    const url = els.scannerUrl.value.trim();
+    if (!url) return;
+    state.scannerUrl = url;
+    els.dialogScannerUrl.value = url;
+    fetchScanner();
+  });
+
+  els.refresh.addEventListener("click", fetchScanner);
+
+  els.saveSettings.addEventListener("click", () => {
+    saveAlertDistance(els.alertDistance.value);
+  });
+
+  els.settings.addEventListener("click", () => {
+    els.dialogScannerUrl.value = state.scannerUrl;
+    els.dialogAlertDistance.value = String(state.alertDistance);
+    els.dialog.showModal();
+  });
+
+  els.dialogSave.addEventListener("click", () => {
+    state.scannerUrl = els.dialogScannerUrl.value.trim();
+    saveAlertDistance(els.dialogAlertDistance.value);
+    els.scannerUrl.value = state.scannerUrl;
+    els.dialog.close();
+    fetchScanner();
+  });
+
+  els.disconnect.addEventListener("click", () => {
+    state.scannerUrl = "";
+    els.scannerUrl.value = "";
+    els.dialogScannerUrl.value = "";
+    els.dialog.close();
+    fetchScanner();
+  });
+
+  // Initial state.
+  els.scannerUrl.value = state.scannerUrl;
+  els.alertDistance.value = String(state.alertDistance);
+  els.dialogScannerUrl.value = state.scannerUrl;
+  els.dialogAlertDistance.value = String(state.alertDistance);
+  render();
+  if (state.scannerUrl) fetchScanner();
+})();

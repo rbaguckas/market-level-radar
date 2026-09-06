@@ -79,3 +79,4 @@ The frontend intentionally accepts several common JSON shapes so the existing Ap
 Typical row fields it recognizes include `symbol`/`ticker`, `company`/`name`, `market`/`exchange`, `zone`/`type`, `candleFormation`/`direction`/`bias`, `price`, low/high zone bounds, distance, and status.
 
 If your current Apps Script response uses different field names, adjust only the normalization section in `public/app.js`; the scanner calculation logic itself does not need to move.
+Cloudflare deployment trigger.

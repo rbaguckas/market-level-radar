@@ -52,6 +52,7 @@ h3 { font-size: 22px; margin-bottom: 10px; }
 }
 .badge-warn { color: var(--warn); background: rgba(255,207,103,.07); }
 .badge-good { color: var(--good); background: rgba(119,217,164,.07); }
+.badge-stale { color: var(--warn); background: rgba(255,207,103,.07); }
 .btn {
   border: 1px solid var(--line); border-radius: 9px; min-height: 38px; padding: 0 14px;
   background: var(--panel-2); color: var(--text); font-weight: 700;
@@ -81,6 +82,15 @@ main { padding: 26px 0 50px; }
 .hero-number { font-size: 28px; font-weight: 850; }
 .slash { color: var(--muted); font-weight: 500; }
 #lastScan { margin-top: 8px; color: var(--muted); font-size: 12px; }
+#lastScan.stale { color: var(--warn); }
+.scan-progress {
+  width: 100%; height: 5px; margin-top: 10px; overflow: hidden;
+  border-radius: 999px; background: #090d12;
+}
+.scan-progress span {
+  display: block; width: 0; height: 100%; border-radius: inherit;
+  background: var(--accent); transition: width .25s ease;
+}
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
 .stat-card {
   border: 1px solid var(--line); background: var(--panel); border-radius: 14px; padding: 18px;

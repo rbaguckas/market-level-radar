@@ -19,6 +19,7 @@
   let rows = [...DEMO_ROWS];
   let activeFilter = "all";
   let searchTerm = "";
+  let scanProgress = { processed: 0, total: 100 };
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -31,7 +32,11 @@
     settings: $("settingsBtn"),
     feedBadge: $("feedBadge"),
     connectPanel: $("connectPanel"),
+    quarterLabel: $("quarterLabel"),
     reporting: $("reportingCount"),
+    reportingTotal: $("reportingTotal"),
+    scanProgressLabel: $("scanProgressLabel"),
+    scanProgressBar: $("scanProgressBar"),
     lastScan: $("lastScan"),
     signalCount: $("signalCount"),
     fvgCount: $("fvgCount"),
@@ -185,6 +190,40 @@
     return n === null || n === undefined || Number.isNaN(n) ? "—" : `${fmt(Math.abs(n), 2)}%`;
   }
 
+  function currentQuarterLabel(now = new Date()) {
+    return `Q${Math.floor(now.getMonth() / 3) + 1} ${now.getFullYear()}`;
+  }
+
+  function extractProgress(payload) {
+    const total = num(first(payload || {}, ["total","progress.total","meta.total"], null));
+    const processed = num(first(payload || {}, ["processed","progress.processed","meta.processed","cursor"], null));
+    const safeTotal = total !== null && total > 0 ? Math.floor(total) : 100;
+    const safeProcessed = processed !== null ? Math.min(safeTotal, Math.max(0, Math.floor(processed))) : 0;
+    return { processed: safeProcessed, total: safeTotal };
+  }
+
+  function scanFreshness(payload, now = new Date()) {
+    const raw = first(payload || {}, ["lastScan","last_scan","lastUpdated","last_updated","timestamp","meta.lastScan","meta.last_scan","updatedAt"], null);
+    if (!raw) return { text: "Last scan time unavailable", stale: true };
+    const date = new Date(raw);
+    if (Number.isNaN(date.valueOf())) return { text: `Last daily scan · ${raw}`, stale: true };
+    const sameDay = date.getFullYear() === now.getFullYear()
+      && date.getMonth() === now.getMonth()
+      && date.getDate() === now.getDate();
+    return { text: `Last daily scan · ${date.toLocaleString()}`, stale: !sameDay };
+  }
+
+  function updateProgress() {
+    const { processed, total } = scanProgress;
+    const remaining = Math.max(0, total - processed);
+    els.reporting.textContent = processed;
+    els.reportingTotal.textContent = total;
+    els.scanProgressBar.style.width = `${total ? (processed / total) * 100 : 0}%`;
+    els.scanProgressLabel.textContent = remaining
+      ? `Scanning · ${remaining} remaining · ~${Math.ceil(remaining / 8)} min`
+      : "Full scan complete";
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   }
@@ -207,6 +246,7 @@
   }
 
   function render() {
+    els.quarterLabel.textContent = currentQuarterLabel();
     const interest = interestedSet();
     const list = filteredRows();
     const interestedCount = new Set(rows.filter(r => interest.has(r.symbol)).map(r => r.symbol)).size;
@@ -242,32 +282,26 @@
       });
     });
 
-    const realRows = rows.filter(r => !r.demo);
-    els.reporting.textContent = realRows.length || rows.length;
+    updateProgress();
     const threshold = state.alertDistance;
     els.signalCount.textContent = String(rows.filter(r => r.distance !== null && Math.abs(r.distance) <= threshold).length).padStart(2, "0");
     els.fvgCount.textContent = String(rows.filter(r => r.zone === "FVG").length).padStart(2, "0");
     els.obCount.textContent = String(rows.filter(r => r.zone === "Order block").length).padStart(2, "0");
   }
 
-  function setConnectedUi(connected, detail = "") {
-    els.feedBadge.textContent = connected ? "US data feed connected" : "US data feed not connected";
-    els.feedBadge.className = `badge ${connected ? "badge-good" : "badge-warn"}`;
+  function setConnectedUi(connected, detail = "", stale = false) {
+    els.feedBadge.textContent = connected ? (stale ? "Market data stale" : "US data feed connected") : "US data feed not connected";
+    els.feedBadge.className = `badge ${connected ? (stale ? "badge-stale" : "badge-good") : "badge-warn"}`;
     els.connectPanel.classList.toggle("hidden", connected);
+    els.lastScan.classList.toggle("stale", connected && stale);
     if (detail) els.lastScan.textContent = detail;
-  }
-
-  function extractLastScan(payload) {
-    const raw = first(payload || {}, ["lastScan","last_scan","lastUpdated","last_updated","timestamp","meta.lastScan","meta.last_scan","updatedAt"], null);
-    if (!raw) return "Feed connected · daily scanner";
-    const date = new Date(raw);
-    return Number.isNaN(date.valueOf()) ? `Last daily scan · ${raw}` : `Last daily scan · ${date.toLocaleString()}`;
   }
 
   async function fetchScanner() {
     const url = state.scannerUrl;
     if (!url) {
       rows = [...DEMO_ROWS];
+      scanProgress = { processed: 0, total: 100 };
       setConnectedUi(false, "Awaiting feed · last daily scan");
       render();
       return;
@@ -298,14 +332,18 @@
       }
 
       const incoming = extractRows(payload).map(normalizeRow).filter(r => r.symbol);
-      if (!incoming.length) throw new Error("Scanner connected, but no stock rows were found in its response.");
+      const hasProgress = num(first(payload || {}, ["processed","progress.processed","meta.processed","cursor"], null)) !== null;
+      if (!incoming.length && !hasProgress) throw new Error("Scanner connected, but no stock rows were found in its response.");
 
       rows = incoming.filter(row => isCurrentQuarterRow(row));
-      setConnectedUi(true, extractLastScan(payload));
+      scanProgress = extractProgress(payload);
+      const freshness = scanFreshness(payload);
+      setConnectedUi(true, freshness.text, freshness.stale);
       render();
     } catch (err) {
       console.error(err);
       rows = [...DEMO_ROWS];
+      scanProgress = { processed: 0, total: 100 };
       setConnectedUi(false, `Feed error · ${err.message}`);
       render();
     } finally {
@@ -376,10 +414,17 @@
   });
 
   // Initial state.
+  els.quarterLabel.textContent = currentQuarterLabel();
   els.scannerUrl.value = state.scannerUrl;
   els.alertDistance.value = String(state.alertDistance);
   els.dialogScannerUrl.value = state.scannerUrl;
   els.dialogAlertDistance.value = String(state.alertDistance);
   render();
   if (state.scannerUrl) fetchScanner();
+  if (typeof setInterval === "function") {
+    setInterval(() => {
+      els.quarterLabel.textContent = currentQuarterLabel();
+      if (state.scannerUrl) fetchScanner();
+    }, 60_000);
+  }
 })();

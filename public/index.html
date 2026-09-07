@@ -14,7 +14,7 @@
         <div class="brand-mark">ML</div>
         <div>
           <h1>Market Level Radar</h1>
-          <p>Q3 2026 · DAILY SCANNER</p>
+          <p><span id="quarterLabel">CURRENT QUARTER</span> · DAILY SCANNER</p>
         </div>
       </div>
       <div class="top-actions">
@@ -32,8 +32,9 @@
           <p class="muted">The scanner tracks the first valid daily FVG or order block formed this calendar quarter across 100 large-cap US stocks.</p>
         </div>
         <div class="hero-status">
-          <div class="hero-number"><span id="reportingCount">2</span><span class="slash"> / </span>100</div>
-          <div class="muted">symbols reporting</div>
+          <div class="hero-number"><span id="reportingCount">0</span><span class="slash"> / </span><span id="reportingTotal">100</span></div>
+          <div id="scanProgressLabel" class="muted">scanner progress</div>
+          <div class="scan-progress" aria-hidden="true"><span id="scanProgressBar"></span></div>
           <div id="lastScan">Awaiting feed · last daily scan</div>
         </div>
       </section>
@@ -149,7 +150,7 @@
               <div class="suffix-input"><input id="alertDistance" type="number" min="0" step="0.1" value="1.0" /><span>%</span></div>
             </label>
           </div>
-          <p class="muted small">The free API is processed in batches. A full 100-stock refresh can take several hours and then remain available all day.</p>
+          <p class="muted small">The free API scans eight stocks per minute. A full 100-stock refresh takes about 13 minutes and then remains available all day.</p>
           <button id="saveSettingsBtn" class="btn btn-secondary">Save scanner settings</button>
         </section>
       </section>

@@ -163,8 +163,6 @@ td.num-col { color: var(--muted); }
 .interest-note { width: 150px; min-height: 34px; font-size: 12px; }
 .interest-note::placeholder { color: #667486; }
 .zone-tag { color: #c8d6e6; font-weight: 700; }
-.candle-up { color: var(--good); }
-.candle-down { color: var(--danger); }
 .empty-state { padding: 34px; text-align: center; color: var(--muted); }
 .hidden { display: none !important; }
 .two-col { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; margin-top: 12px; }

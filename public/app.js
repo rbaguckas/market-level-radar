@@ -271,7 +271,6 @@
       const on = interest.has(r.symbol);
       const canNote = on || (r.distance !== null && Math.abs(r.distance) <= state.alertDistance);
       const note = typeof notes[r.symbol] === "string" ? notes[r.symbol] : "";
-      const formationClass = /bull/i.test(r.candleFormation) ? "candle-up" : /bear/i.test(r.candleFormation) ? "candle-down" : "";
       return `<tr class="${on ? "interested" : ""}">
         <td class="num-col">${i + 1}</td>
         <td class="company-cell"><div class="company">${escapeHtml(r.company)}</div><div class="ticker">${escapeHtml(r.symbol)}</div></td>
@@ -280,7 +279,6 @@
         <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button>${canNote ? `<input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}">` : ""}</div></td>
         <td>${escapeHtml(r.market)}</td>
         <td class="zone-tag">${escapeHtml(r.zone)}</td>
-        <td class="${formationClass}">${escapeHtml(r.candleFormation)}</td>
         <td>${fmtFormed(r.formed)}</td>
         <td>${fmt(r.price)}</td>
         <td>${r.low === null && r.high === null ? "—" : `${fmt(r.low)} — ${fmt(r.high)}`}</td>

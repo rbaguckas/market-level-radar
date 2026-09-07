@@ -23,10 +23,8 @@ function refreshEarningsCalendar_(props, force) {
   const dates = parseEarningsCalendar_(csv, SYMBOLS, today);
   if (!Object.keys(dates).length && csv.indexOf('symbol,') !== 0) throw new Error('Alpha Vantage did not return an earnings calendar');
 
-  props.setProperties({
-    [EARNINGS_CACHE_KEY]: JSON.stringify(dates),
-    [EARNINGS_CACHE_DAY_KEY]: today
-  });
+  props.setProperty(EARNINGS_CACHE_KEY, JSON.stringify(dates));
+  props.setProperty(EARNINGS_CACHE_DAY_KEY, today);
 }
 
 function parseEarningsCalendar_(csv, symbols, today) {

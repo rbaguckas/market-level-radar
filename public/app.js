@@ -172,6 +172,15 @@
     return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric", timeZone: "UTC" });
   }
 
+  function isCurrentQuarterRow(row, now = new Date()) {
+    const value = row?.formed;
+    if (row?.demo || typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return true;
+    const formed = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(formed.valueOf()) || formed.toISOString().slice(0, 10) !== value) return true;
+    return formed.getUTCFullYear() === now.getFullYear()
+      && Math.floor(formed.getUTCMonth() / 3) === Math.floor(now.getMonth() / 3);
+  }
+
   function fmtDistance(n) {
     return n === null || n === undefined || Number.isNaN(n) ? "—" : `${fmt(Math.abs(n), 2)}%`;
   }
@@ -291,7 +300,7 @@
       const incoming = extractRows(payload).map(normalizeRow).filter(r => r.symbol);
       if (!incoming.length) throw new Error("Scanner connected, but no stock rows were found in its response.");
 
-      rows = incoming;
+      rows = incoming.filter(row => isCurrentQuarterRow(row));
       setConnectedUi(true, extractLastScan(payload));
       render();
     } catch (err) {

@@ -14,6 +14,7 @@ Static frontend migration of the Market Level Radar dashboard.
 - Case-insensitive partial ticker/company search
 - FVG and Interested filters
 - Per-stock Interested flag (`⚐` / `⚑`) stored locally in the browser
+- Upcoming earnings dates with relative risk labels when `earningsDate` is supplied by the scanner
 - Numbered rows
 - Priority column order: `#`, Company/Symbol, Status, Distance, Interested, then the remaining analysis fields
 - Configurable alert distance
@@ -79,6 +80,8 @@ The frontend intentionally accepts several common JSON shapes so the existing Ap
 Typical row fields it recognizes include `symbol`/`ticker`, `company`/`name`, `market`/`exchange`, `zone`/`type`, `candleFormation`/`direction`/`bias`, `price`, low/high zone bounds, distance, and status.
 
 If your current Apps Script response uses different field names, adjust only the normalization section in `public/app.js`; the scanner calculation logic itself does not need to move.
+
+An optional `earningsDate` field in `YYYY-MM-DD` format is preserved on each normalized row and displayed as a relative value. Missing or invalid dates display as `—`.
 Cloudflare deployment trigger.
 
 ## PIN protection

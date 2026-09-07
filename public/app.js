@@ -154,6 +154,7 @@
     return {
       symbol, company, market, zone, candleFormation: formation, price, low, high, distance,
       formed: first(r, ["formed"], null),
+      earningsDate: first(r, ["earningsDate","earnings_date","nextEarningsDate","next_earnings_date","earnings.date"], null),
       status: suppliedStatus ? String(suppliedStatus) : null,
       demo: Boolean(r.demo),
       raw: r
@@ -198,6 +199,18 @@
 
   function fmtDistance(n) {
     return n === null || n === undefined || Number.isNaN(n) ? "—" : `${fmt(Math.abs(n), 2)}%`;
+  }
+
+  function earningsDisplay(value, now = new Date()) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return { text: "—", risk: "", exact: null };
+    const date = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== value) return { text: "—", risk: "", exact: null };
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const earningsUtc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    const days = Math.round((earningsUtc - todayUtc) / 86_400_000);
+    if (days < 0) return { text: "—", risk: "", exact: value };
+    const text = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`;
+    return { text, risk: days <= 1 ? "earnings-high" : days <= 3 ? "earnings-caution" : "", exact: value };
   }
 
   function currentQuarterLabel(now = new Date()) {
@@ -272,12 +285,14 @@
       const on = interest.has(r.symbol);
       const canNote = on || (r.distance !== null && Math.abs(r.distance) <= state.alertDistance);
       const note = typeof notes[r.symbol] === "string" ? notes[r.symbol] : "";
+      const earnings = earningsDisplay(r.earningsDate);
       return `<tr class="${on ? "interested" : ""}">
         <td class="num-col">${i + 1}</td>
         <td class="company-cell"><div class="company">${escapeHtml(r.company)}</div><div class="ticker">${escapeHtml(r.symbol)}</div></td>
         <td><span class="status ${statusClass(st)}">${escapeHtml(st)}</span></td>
         <td class="distance">${fmtDistance(r.distance)}</td>
         <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button>${canNote ? `<input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}">` : ""}</div></td>
+        <td><span class="earnings ${earnings.risk}"${earnings.exact ? ` title="${escapeHtml(earnings.exact)}"` : ""}>${earnings.text}</span></td>
         <td>${escapeHtml(r.market)}</td>
         <td class="zone-tag">${escapeHtml(r.zone)}</td>
         <td>${fmtFormed(r.formed)}</td>

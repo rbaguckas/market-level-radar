@@ -20,6 +20,7 @@
   let activeFilter = "all";
   let searchTerm = "";
   let scanProgress = { processed: 0, total: 100 };
+  let feedConnected = false;
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -219,6 +220,11 @@
     els.reporting.textContent = processed;
     els.reportingTotal.textContent = total;
     els.scanProgressBar.style.width = `${total ? (processed / total) * 100 : 0}%`;
+    if (!feedConnected) {
+      els.scanProgressBar.style.width = "0%";
+      els.scanProgressLabel.textContent = state.scannerUrl ? "Scan progress unavailable" : "Scanner not connected";
+      return;
+    }
     els.scanProgressLabel.textContent = remaining
       ? `Scanning · ${remaining} remaining · ~${Math.ceil(remaining / 8)} min`
       : "Full scan complete";
@@ -290,6 +296,7 @@
   }
 
   function setConnectedUi(connected, detail = "", stale = false) {
+    feedConnected = connected;
     els.feedBadge.textContent = connected ? (stale ? "Market data stale" : "US data feed connected") : "US data feed not connected";
     els.feedBadge.className = `badge ${connected ? (stale ? "badge-stale" : "badge-good") : "badge-warn"}`;
     els.connectPanel.classList.toggle("hidden", connected);

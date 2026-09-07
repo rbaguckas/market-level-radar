@@ -2,7 +2,8 @@
   const STORAGE = {
     scannerUrl: "mlr.scannerUrl",
     alertDistance: "mlr.alertDistance",
-    interested: "mlr.interested"
+    interested: "mlr.interested",
+    interestedNotes: "mlr.interestedNotes"
   };
 
   const DEMO_ROWS = [
@@ -63,7 +64,14 @@
       try { return new Set(JSON.parse(localStorage.getItem(STORAGE.interested) || "[]")); }
       catch { return new Set(); }
     },
-    set interested(set) { localStorage.setItem(STORAGE.interested, JSON.stringify([...set])); }
+    set interested(set) { localStorage.setItem(STORAGE.interested, JSON.stringify([...set])); },
+    get interestedNotes() {
+      try {
+        const value = JSON.parse(localStorage.getItem(STORAGE.interestedNotes) || "{}");
+        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      } catch { return {}; }
+    },
+    set interestedNotes(notes) { localStorage.setItem(STORAGE.interestedNotes, JSON.stringify(notes)); }
   };
 
   function first(obj, keys, fallback = null) {
@@ -254,19 +262,22 @@
   function render() {
     els.quarterLabel.textContent = currentQuarterLabel();
     const interest = interestedSet();
+    const notes = state.interestedNotes;
     const list = filteredRows();
     const interestedCount = new Set(rows.filter(r => interest.has(r.symbol)).map(r => r.symbol)).size;
     interestedFilter.textContent = `Interested ${interestedCount}`;
     els.body.innerHTML = list.map((r, i) => {
       const st = statusFor(r);
       const on = interest.has(r.symbol);
+      const canNote = on || (r.distance !== null && Math.abs(r.distance) <= state.alertDistance);
+      const note = typeof notes[r.symbol] === "string" ? notes[r.symbol] : "";
       const formationClass = /bull/i.test(r.candleFormation) ? "candle-up" : /bear/i.test(r.candleFormation) ? "candle-down" : "";
       return `<tr class="${on ? "interested" : ""}">
         <td class="num-col">${i + 1}</td>
         <td class="company-cell"><div class="company">${escapeHtml(r.company)}</div><div class="ticker">${escapeHtml(r.symbol)}</div></td>
         <td><span class="status ${statusClass(st)}">${escapeHtml(st)}</span></td>
         <td class="distance">${fmtDistance(r.distance)}</td>
-        <td><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button></td>
+        <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button>${canNote ? `<input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}">` : ""}</div></td>
         <td>${escapeHtml(r.market)}</td>
         <td class="zone-tag">${escapeHtml(r.zone)}</td>
         <td class="${formationClass}">${escapeHtml(r.candleFormation)}</td>
@@ -285,6 +296,15 @@
         set.has(symbol) ? set.delete(symbol) : set.add(symbol);
         state.interested = set;
         render();
+      });
+    });
+
+    els.body.querySelectorAll("[data-note]").forEach(input => {
+      input.addEventListener("input", () => {
+        const notes = state.interestedNotes;
+        const value = input.value.slice(0, 120);
+        value ? notes[input.dataset.note] = value : delete notes[input.dataset.note];
+        state.interestedNotes = notes;
       });
     });
 

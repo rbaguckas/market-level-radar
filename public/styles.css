@@ -159,6 +159,9 @@ td.num-col { color: var(--muted); }
   background: #0a0f15; color: var(--muted); font-size: 18px;
 }
 .interest-btn.on { color: var(--accent); border-color: rgba(216,255,104,.35); background: rgba(216,255,104,.06); }
+.interest-control { display: flex; align-items: center; gap: 8px; }
+.interest-note { width: 150px; min-height: 34px; font-size: 12px; }
+.interest-note::placeholder { color: #667486; }
 .zone-tag { color: #c8d6e6; font-weight: 700; }
 .candle-up { color: var(--good); }
 .candle-down { color: var(--danger); }

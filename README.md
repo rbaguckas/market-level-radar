@@ -6,13 +6,13 @@ Static frontend migration of the Market Level Radar dashboard.
 
 - 100 large-cap US-stock daily scanner
 - Calendar-quarter reset
-- First qualifying FVG or order block
+- First qualifying quarterly FVG
 - Three-candle FVG rule
 - Order-block rule
 - First-valid-zone logic
 - `Candle formation` label instead of `Bias`
 - Case-insensitive partial ticker/company search
-- FVG / Order block filters
+- FVG and Interested filters
 - Per-stock Interested flag (`⚐` / `⚑`) stored locally in the browser
 - Numbered rows
 - Priority column order: `#`, Company/Symbol, Status, Distance, Interested, then the remaining analysis fields

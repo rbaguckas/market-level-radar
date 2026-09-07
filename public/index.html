@@ -28,8 +28,8 @@
       <section class="hero panel">
         <div>
           <div class="eyebrow">DAILY ICT LEVELS ACROSS LARGE-CAP US STOCKS</div>
-          <h2>First qualifying quarterly FVG or order block</h2>
-          <p class="muted">The scanner tracks the first valid daily FVG or order block formed this calendar quarter across 100 large-cap US stocks.</p>
+          <h2>First qualifying quarterly fair value gap</h2>
+          <p class="muted">The scanner tracks the first valid daily FVG formed this calendar quarter across 100 large-cap US stocks.</p>
         </div>
         <div class="hero-status">
           <div class="hero-number"><span id="reportingCount">0</span><span class="slash"> / </span><span id="reportingTotal">100</span></div>
@@ -49,11 +49,6 @@
           <div class="stat-label">ACTIVE FVG LEVELS</div>
           <div class="stat-value" id="fvgCount">01</div>
           <div class="stat-note">First qualifying gaps</div>
-        </article>
-        <article class="stat-card">
-          <div class="stat-label">ACTIVE ORDER BLOCKS</div>
-          <div class="stat-value" id="obCount">01</div>
-          <div class="stat-note">First qualifying blocks</div>
         </article>
         <article class="stat-card">
           <div class="stat-label">UNIVERSE REFRESH</div>
@@ -89,7 +84,6 @@
             <div class="segmented" role="group" aria-label="Zone filter">
               <button class="seg active" data-filter="all">All</button>
               <button class="seg" data-filter="fvg">FVG</button>
-              <button class="seg" data-filter="order block">Order blocks</button>
             </div>
           </div>
         </div>
@@ -127,8 +121,7 @@
           <div class="rules">
             <div class="rule"><span>01</span><div><strong>Quarter boundary</strong><p>Reset at the first daily candle of each calendar quarter.</p></div></div>
             <div class="rule"><span>02</span><div><strong>Fair value gap</strong><p>Three-candle imbalance: candle 1 high below candle 3 low, or inverse.</p></div></div>
-            <div class="rule"><span>03</span><div><strong>Order block</strong><p>Last opposing candle before a displacement that breaks recent structure.</p></div></div>
-            <div class="rule"><span>04</span><div><strong>First valid zone wins</strong><p>Track whichever qualifying zone appears first; retire it after full mitigation.</p></div></div>
+            <div class="rule"><span>03</span><div><strong>First valid gap wins</strong><p>Track the quarter's first qualifying FVG and retire it after full mitigation.</p></div></div>
           </div>
         </section>
 

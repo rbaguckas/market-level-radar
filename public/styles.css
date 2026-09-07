@@ -91,7 +91,7 @@ main { padding: 26px 0 50px; }
   display: block; width: 0; height: 100%; border-radius: inherit;
   background: var(--accent); transition: width .25s ease;
 }
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
 .stat-card {
   border: 1px solid var(--line); background: var(--panel); border-radius: 14px; padding: 18px;
 }

@@ -12,8 +12,8 @@
       candleFormation: "Bullish", price: 171.66, low: 169.80, high: 170.42, distance: 0.72, status: "Demo", demo: true
     },
     {
-      symbol: "TSM", company: "TSMC · DEMO", market: "NYSE", zone: "Order block",
-      candleFormation: "Bullish", price: 235.18, low: 232.40, high: 233.60, distance: 0.68, status: "Demo", demo: true
+      symbol: "TSM", company: "TSMC · DEMO", market: "NYSE", zone: "FVG",
+      candleFormation: "Bearish", price: 235.18, low: 232.40, high: 233.60, distance: 0.68, status: "Demo", demo: true
     }
   ];
 
@@ -42,7 +42,6 @@
     lastScan: $("lastScan"),
     signalCount: $("signalCount"),
     fvgCount: $("fvgCount"),
-    obCount: $("obCount"),
     alertDistance: $("alertDistance"),
     saveSettings: $("saveSettingsBtn"),
     dialog: $("settingsDialog"),
@@ -93,7 +92,6 @@
   function normalizeZone(raw) {
     const z = String(raw || "").trim();
     if (!z) return "—";
-    if (/order\s*block|\bob\b/i.test(z)) return "Order block";
     if (/fvg|fair\s*value\s*gap/i.test(z)) return "FVG";
     return z;
   }
@@ -310,7 +308,6 @@
     const threshold = state.alertDistance;
     els.signalCount.textContent = String(rows.filter(r => r.distance !== null && Math.abs(r.distance) <= threshold).length).padStart(2, "0");
     els.fvgCount.textContent = String(rows.filter(r => r.zone === "FVG").length).padStart(2, "0");
-    els.obCount.textContent = String(rows.filter(r => r.zone === "Order block").length).padStart(2, "0");
   }
 
   function setConnectedUi(connected, detail = "", stale = false) {
@@ -360,7 +357,7 @@
       const hasProgress = num(first(payload || {}, ["processed","progress.processed","meta.processed","cursor"], null)) !== null;
       if (!incoming.length && !hasProgress) throw new Error("Scanner connected, but no stock rows were found in its response.");
 
-      rows = incoming.filter(row => isCurrentQuarterRow(row));
+      rows = incoming.filter(row => row.zone === "FVG" && isCurrentQuarterRow(row));
       scanProgress = extractProgress(payload);
       const freshness = scanFreshness(payload);
       setConnectedUi(true, freshness.text, freshness.stale);

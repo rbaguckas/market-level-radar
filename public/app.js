@@ -55,7 +55,9 @@
     get scannerUrl() { return (localStorage.getItem(STORAGE.scannerUrl) || "").trim(); },
     set scannerUrl(v) { v ? localStorage.setItem(STORAGE.scannerUrl, v.trim()) : localStorage.removeItem(STORAGE.scannerUrl); },
     get alertDistance() {
-      const n = Number(localStorage.getItem(STORAGE.alertDistance));
+      const saved = localStorage.getItem(STORAGE.alertDistance);
+      if (saved === null || saved === "") return 1.0;
+      const n = Number(saved);
       return Number.isFinite(n) && n >= 0 ? n : 1.0;
     },
     set alertDistance(v) { localStorage.setItem(STORAGE.alertDistance, String(v)); },
@@ -160,9 +162,10 @@
 
   function statusFor(row) {
     if (row.demo) return "Demo";
-    if (row.status) return row.status;
-    if (row.distance !== null && Math.abs(row.distance) <= state.alertDistance) return "Alert";
-    return "Tracking";
+    if (row.distance !== null) {
+      return Math.abs(row.distance) <= state.alertDistance ? "Within range" : "Watching";
+    }
+    return row.status || "Watching";
   }
 
   function statusClass(status) {

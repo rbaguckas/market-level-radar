@@ -82,6 +82,12 @@ Typical row fields it recognizes include `symbol`/`ticker`, `company`/`name`, `m
 If your current Apps Script response uses different field names, adjust only the normalization section in `public/app.js`; the scanner calculation logic itself does not need to move.
 
 An optional `earningsDate` field in `YYYY-MM-DD` format is preserved on each normalized row and displayed as a relative value. Missing or invalid dates display as `—`.
+
+### Alpha Vantage earnings calendar
+
+The Apps Script scanner can use Alpha Vantage only for upcoming earnings while keeping Twelve Data unchanged for candles. Add `scanner/Earnings.gs` to the Apps Script project, store the Alpha Vantage key in the `ALPHA_VANTAGE_API_KEY` script property, call `refreshEarningsCalendar_(props)` from `scanBatch()`, and wrap the response rows with `addEarningsDates_(rows, props)` in `doGet()`.
+
+The integration requests the bulk three-month `EARNINGS_CALENDAR` CSV once per UTC day, keeps only dates for the configured 100-stock universe, and caches the resulting symbol-to-date map in Script Properties. Failed requests wait six hours before retrying.
 Cloudflare deployment trigger.
 
 ## PIN protection

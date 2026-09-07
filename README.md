@@ -80,3 +80,32 @@ Typical row fields it recognizes include `symbol`/`ticker`, `company`/`name`, `m
 
 If your current Apps Script response uses different field names, adjust only the normalization section in `public/app.js`; the scanner calculation logic itself does not need to move.
 Cloudflare deployment trigger.
+
+## PIN protection
+
+The Worker protects the dashboard and every file in `public/` before static assets are served. For local development, create a local-only `.dev.vars` file:
+
+```text
+SITE_PIN=choose-a-private-pin
+```
+
+Then run:
+
+```sh
+npm install
+npm run dev
+```
+
+Set the production PIN as an encrypted Cloudflare secret. From the project directory, run this command and enter the PIN when Wrangler prompts:
+
+```sh
+npx wrangler secret put SITE_PIN
+```
+
+Deploy after setting the secret:
+
+```sh
+npm run deploy
+```
+
+Do not put the production PIN in `wrangler.jsonc`, source control, or a plaintext Wrangler variable. Changing `SITE_PIN` invalidates existing login cookies.

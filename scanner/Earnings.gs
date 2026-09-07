@@ -3,17 +3,17 @@ const EARNINGS_CACHE_DAY_KEY = 'alphaVantageEarningsDay';
 const EARNINGS_ATTEMPT_KEY = 'alphaVantageEarningsAttempt';
 const EARNINGS_RETRY_MS = 6 * 60 * 60 * 1000;
 
-function refreshEarningsCalendar_(props) {
+function refreshEarningsCalendar_(props, force) {
   const today = Utilities.formatDate(new Date(), 'UTC', 'yyyy-MM-dd');
   if (props.getProperty(EARNINGS_CACHE_DAY_KEY) === today) return;
 
-  const now = Date.now();
-  const lastAttempt = Number(props.getProperty(EARNINGS_ATTEMPT_KEY) || 0);
-  if (now - lastAttempt < EARNINGS_RETRY_MS) return;
-  props.setProperty(EARNINGS_ATTEMPT_KEY, String(now));
-
   const apiKey = props.getProperty('ALPHA_VANTAGE_API_KEY');
   if (!apiKey) return;
+
+  const now = Date.now();
+  const lastAttempt = Number(props.getProperty(EARNINGS_ATTEMPT_KEY) || 0);
+  if (!force && now - lastAttempt < EARNINGS_RETRY_MS) return;
+  props.setProperty(EARNINGS_ATTEMPT_KEY, String(now));
 
   const url = 'https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=3month&apikey=' + encodeURIComponent(apiKey);
   const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
@@ -63,5 +63,5 @@ function addEarningsDates_(rows, props) {
 }
 
 function refreshEarningsCalendar() {
-  refreshEarningsCalendar_(PropertiesService.getScriptProperties());
+  refreshEarningsCalendar_(PropertiesService.getScriptProperties(), true);
 }

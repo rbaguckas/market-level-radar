@@ -36,6 +36,14 @@ context.api.refreshEarningsCalendar_(props);
 assert.equal(fetches, 1);
 assert.equal(values.get("alphaVantageEarningsDay"), "2026-09-07");
 
+const missingKeyValues = new Map();
+context.api.refreshEarningsCalendar_({
+  getProperty: key => missingKeyValues.get(key) ?? null,
+  setProperty: (key, value) => missingKeyValues.set(key, value),
+  setProperties: object => Object.entries(object).forEach(([key, value]) => missingKeyValues.set(key, value))
+});
+assert.equal(missingKeyValues.has("alphaVantageEarningsAttempt"), false);
+
 const enriched = context.api.addEarningsDates_([{symbol:"AAPL"},{symbol:"MSFT"},{symbol:"NVDA"}], props);
 assert.deepEqual(enriched.map(row => row.earningsDate), ["2026-09-09", "2026-09-08", null]);
 console.log("PASS: bulk calendar parsing, universe mapping, earliest upcoming date, daily cache and response enrichment.");

@@ -49,6 +49,22 @@ assert.equal(calendarFetches, 1);
 assert.equal(epsFetches, 2);
 assert.equal(values.get("alphaVantageEarningsDay"), "2026-09-07");
 
+const legacyValues = new Map([
+  ["ALPHA_VANTAGE_API_KEY", "test-key"],
+  ["alphaVantageEarnings", JSON.stringify({ AAPL: "2026-09-09" })],
+  ["alphaVantageEarningsDay", "2026-09-07"]
+]);
+const legacyProps = {
+  getProperty: key => legacyValues.get(key) ?? null,
+  setProperty: (key, value) => legacyValues.set(key, value),
+  setProperties: object => Object.entries(object).forEach(([key, value]) => legacyValues.set(key, value))
+};
+const calendarFetchesBeforeMigration = calendarFetches;
+context.api.refreshEarningsCalendar_(legacyProps);
+assert.equal(calendarFetches, calendarFetchesBeforeMigration + 1);
+assert.ok(legacyValues.has("alphaVantageEarningsEstimates"));
+assert.ok(legacyValues.has("alphaVantageEpsOutlook.AAPL"));
+
 const missingKeyValues = new Map();
 context.api.refreshEarningsCalendar_({
   getProperty: key => missingKeyValues.get(key) ?? null,

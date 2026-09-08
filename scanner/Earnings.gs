@@ -12,7 +12,9 @@ const EPS_OUTLOOK_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 function refreshEarningsCalendar_(props, force) {
   const today = Utilities.formatDate(new Date(), 'UTC', 'yyyy-MM-dd');
-  if (props.getProperty(EARNINGS_CACHE_DAY_KEY) === today) {
+  if (!force &&
+      props.getProperty(EARNINGS_CACHE_DAY_KEY) === today &&
+      props.getProperty(EARNINGS_ESTIMATE_CACHE_KEY)) {
     refreshEpsOutlook_(props, force);
     return;
   }

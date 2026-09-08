@@ -10,10 +10,10 @@ const context = vm.createContext({ Object, Array, Set, String, Date, JSON, Respo
 vm.runInContext(source + ";globalThis.cleanSharedStateForTest=cleanSharedState;", context);
 
 const cleaned = context.cleanSharedStateForTest({
-  interested: ["AAPL"],
-  notes: { AAPL: "Flagged note", MSFT: "Keep after unflag", "invalid symbol": "Ignore" }
+  interested: ["AAPL", "BTC/USD"],
+  notes: { AAPL: "Flagged note", "BTC/USD": "Crypto note", MSFT: "Keep after unflag", "invalid symbol": "Ignore" }
 });
 
-assert.deepEqual([...cleaned.interested], ["AAPL"]);
-assert.deepEqual({ ...cleaned.notes }, { AAPL: "Flagged note", MSFT: "Keep after unflag" });
+assert.deepEqual([...cleaned.interested], ["AAPL", "BTC/USD"]);
+assert.deepEqual({ ...cleaned.notes }, { AAPL: "Flagged note", "BTC/USD": "Crypto note", MSFT: "Keep after unflag" });
 console.log("PASS: notes remain saved independently of Interested flags.");

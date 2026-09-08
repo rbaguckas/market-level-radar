@@ -92,13 +92,13 @@ function json(data, status = 200) {
 
 function cleanSharedState(value) {
   const interested = Array.isArray(value?.interested)
-    ? [...new Set(value.interested.map(String).map(s => s.trim().toUpperCase()).filter(s => /^[A-Z.\-]{1,12}$/.test(s)))].slice(0, 1000)
+    ? [...new Set(value.interested.map(String).map(s => s.trim().toUpperCase()).filter(s => /^[A-Z.\-/]{1,12}$/.test(s)))].slice(0, 1000)
     : [];
   const notes = {};
   if (value?.notes && typeof value.notes === "object" && !Array.isArray(value.notes)) {
     for (const [rawSymbol, note] of Object.entries(value.notes)) {
       const symbol = String(rawSymbol).trim().toUpperCase();
-      if (/^[A-Z.\-]{1,12}$/.test(symbol) && typeof note === "string" && note.trim()) {
+      if (/^[A-Z.\-/]{1,12}$/.test(symbol) && typeof note === "string" && note.trim()) {
         notes[symbol] = note.slice(0, 120);
       }
     }

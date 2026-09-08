@@ -8,6 +8,8 @@
   };
 
   const STOCK_INFO = {
+    "BTC/USD": ["Bitcoin", "CRYPTO"], "QQQ": ["Nasdaq 100", "NASDAQ"],
+    "USO": ["United States Oil Fund", "NYSE ARCA"], "GLD": ["SPDR Gold Shares", "NYSE ARCA"],
     "AAPL": ["Apple", "NASDAQ"], "ABBV": ["AbbVie", "NYSE"], "ABT": ["Abbott Laboratories", "NYSE"],
     "ADBE": ["Adobe", "NASDAQ"], "ADI": ["Analog Devices", "NASDAQ"], "ADP": ["Automatic Data Processing", "NASDAQ"],
     "AMAT": ["Applied Materials", "NASDAQ"], "AMD": ["Advanced Micro Devices", "NASDAQ"], "AMGN": ["Amgen", "NASDAQ"],
@@ -162,7 +164,7 @@
     if (payload && typeof payload === "object") {
       const ignored = new Set(["status","meta","settings","lastScan","last_scan","timestamp","message","success","count"]);
       const entries = Object.entries(payload).filter(([k, v]) => !ignored.has(k) && v && typeof v === "object" && !Array.isArray(v));
-      if (entries.length >= 2 && entries.some(([k]) => /^[A-Z.\-]{1,7}$/i.test(k))) {
+      if (entries.length >= 2 && entries.some(([k]) => /^[A-Z.\-/]{1,12}$/i.test(k))) {
         return entries.map(([symbol, value]) => ({ symbol, ...value }));
       }
     }
@@ -324,6 +326,9 @@
   }
 
   function tradingViewUrl(row) {
+    if (row.symbol === "BTC/USD") {
+      return "https://www.tradingview.com/chart/?symbol=COINBASE%3ABTCUSD";
+    }
     const market = String(row.market || "").toUpperCase();
     let exchange = "";
     if (market.includes("NASDAQ")) exchange = "NASDAQ";

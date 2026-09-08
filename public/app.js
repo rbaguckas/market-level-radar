@@ -442,7 +442,6 @@
     els.body.innerHTML = list.map((r, i) => {
       const st = statusFor(r);
       const on = interest.has(r.symbol);
-      const canNote = on || (r.distance !== null && Math.abs(r.distance) <= state.alertDistance);
       const note = typeof notes[r.symbol] === "string" ? notes[r.symbol] : "";
       const earnings = earningsDisplay(r.earningsDate);
       const eps = epsOutlookDisplay(r.epsOutlook);
@@ -451,7 +450,7 @@
         <td class="company-cell"><a class="company-link" href="${tradingViewUrl(r)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(r.symbol)} in TradingView"><span class="ticker">${escapeHtml(r.symbol)}</span>${r.company ? `<span class="company-separator">—</span><span class="company">${escapeHtml(r.company)}</span>` : ""}<span class="external-mark">↗</span></a></td>
         <td><span class="status ${statusClass(st)}">${escapeHtml(st)}</span></td>
         <td class="distance">${fmtDistance(r.distance)}</td>
-        <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button>${canNote ? `<input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}">` : ""}</div></td>
+        <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button><input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}"></div></td>
         <td><span class="earnings ${earnings.risk}"${earnings.exact ? ` title="${escapeHtml(earnings.exact)}"` : ""}>${earnings.text}</span></td>
         <td><span class="eps-outlook ${eps.className}" title="${escapeHtml(eps.title)}">${escapeHtml(eps.text)}</span></td>
         <td>${escapeHtml(r.market)}</td>

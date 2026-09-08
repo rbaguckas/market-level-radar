@@ -15,6 +15,7 @@ Static frontend migration of the Market Level Radar dashboard.
 - FVG and Interested filters
 - Per-stock Interested flag (`⚐` / `⚑`) and notes synchronized across signed-in devices
 - Upcoming earnings dates with relative risk labels when `earningsDate` is supplied by the scanner
+- Forward EPS outlook based on the upcoming quarterly consensus estimate versus the same quarter's actual EPS last year
 - Numbered rows
 - Company names and tickers link directly to the matching TradingView instrument
 - Priority column order: `#`, Company/Symbol, Status, Distance, Interested, then the remaining analysis fields
@@ -89,6 +90,10 @@ An optional `earningsDate` field in `YYYY-MM-DD` format is preserved on each nor
 The Apps Script scanner can use Alpha Vantage only for upcoming earnings while keeping Twelve Data unchanged for candles. Add `scanner/Earnings.gs` to the Apps Script project, store the Alpha Vantage key in the `ALPHA_VANTAGE_API_KEY` script property, call `refreshEarningsCalendar_(props)` from `scanBatch()`, and wrap the response rows with `addEarningsDates_(rows, props)` in `doGet()`.
 
 The integration requests the bulk three-month `EARNINGS_CALENDAR` CSV once per UTC day, keeps only dates for the configured 100-stock universe, and caches the resulting symbol-to-date map in Script Properties. Failed requests wait six hours before retrying.
+
+The same helper gradually builds the **EPS outlook** cache. It compares the upcoming quarter's consensus EPS estimate with reported EPS from the comparable quarter one year earlier. It processes up to 20 stocks per day, so a free key can fill the 100-stock universe over roughly five days without slowing the price scanner. Results are refreshed every 30 days or when the upcoming fiscal quarter changes.
+
+If `Earnings.gs` was already added to Apps Script, replace it with the current version. Existing calls to `refreshEarningsCalendar_(props)` and `addEarningsDates_(rows, props)` do not need to change.
 Cloudflare deployment trigger.
 
 ## Shared flags and notes

@@ -134,7 +134,7 @@ code { color: var(--accent); }
 .seg:last-child { border-right: 0; }
 .seg.active { background: #1a2318; color: var(--accent); }
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 1120px; }
+table { width: 100%; border-collapse: collapse; min-width: 1280px; }
 th, td {
   text-align: left; padding: 14px 13px; border-bottom: 1px solid var(--line); vertical-align: middle;
   white-space: nowrap;
@@ -172,6 +172,10 @@ td.num-col { color: var(--muted); }
 .earnings { display: inline-flex; min-width: 52px; font-weight: 800; }
 .earnings-high { color: var(--danger); }
 .earnings-caution { color: var(--warn); }
+.eps-outlook { display: inline-flex; min-width: 92px; font-weight: 800; }
+.eps-growing, .eps-turnaround, .eps-improving { color: var(--good); }
+.eps-contracting { color: var(--danger); }
+.eps-stable { color: var(--warn); }
 .zone-tag { color: #c8d6e6; font-weight: 700; }
 .empty-state { padding: 34px; text-align: center; color: var(--muted); }
 .hidden { display: none !important; }

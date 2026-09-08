@@ -13,14 +13,26 @@ const csv = [
 ].join("\n");
 
 const parseCsv = text => text.split(/\r?\n/).filter(Boolean).map(line => line.split(","));
-let fetches = 0;
+let calendarFetches = 0;
+let epsFetches = 0;
 const context = vm.createContext({
   SYMBOLS: ["AAPL", "MSFT", "NVDA"],
   Utilities: { parseCsv, formatDate: () => "2026-09-07" },
-  UrlFetchApp: { fetch: () => { fetches += 1; return { getResponseCode: () => 200, getContentText: () => csv }; } },
-  Set, Object, Array, JSON, Date, Error
+  UrlFetchApp: { fetch: url => {
+    if (url.includes("EARNINGS_CALENDAR")) {
+      calendarFetches += 1;
+      return { getResponseCode: () => 200, getContentText: () => csv };
+    }
+    epsFetches += 1;
+    const actual = url.includes("MSFT") ? "2.50" : "1.00";
+    return {
+      getResponseCode: () => 200,
+      getContentText: () => JSON.stringify({ quarterlyEarnings: [{ fiscalDateEnding: "2025-06-30", reportedEPS: actual }] })
+    };
+  } },
+  Set, Object, Array, JSON, Date, Error, Math, Number, isFinite, encodeURIComponent
 });
-vm.runInContext(source + ";globalThis.api={parseEarningsCalendar_,refreshEarningsCalendar_,addEarningsDates_};", context);
+vm.runInContext(source + ";globalThis.api={parseEarningsCalendar_,parseEarningsCalendarDetails_,calculateEpsOutlook_,buildEpsOutlook_,refreshEarningsCalendar_,addEarningsDates_};", context);
 
 const parsed = context.api.parseEarningsCalendar_(csv, context.SYMBOLS, "2026-09-07");
 assert.deepEqual({...parsed}, { AAPL: "2026-09-09", MSFT: "2026-09-08" });
@@ -33,7 +45,8 @@ const props = {
 };
 context.api.refreshEarningsCalendar_(props);
 context.api.refreshEarningsCalendar_(props);
-assert.equal(fetches, 1);
+assert.equal(calendarFetches, 1);
+assert.equal(epsFetches, 2);
 assert.equal(values.get("alphaVantageEarningsDay"), "2026-09-07");
 
 const missingKeyValues = new Map();
@@ -44,6 +57,17 @@ context.api.refreshEarningsCalendar_({
 });
 assert.equal(missingKeyValues.has("alphaVantageEarningsAttempt"), false);
 
+assert.deepEqual(
+  {...context.api.calculateEpsOutlook_(1.2, 1.0)},
+  { growthPct: 20, label: "Growing" }
+);
+assert.deepEqual(
+  {...context.api.calculateEpsOutlook_(2.1, 2.5)},
+  { growthPct: -16, label: "Contracting" }
+);
+assert.equal(context.api.calculateEpsOutlook_(0.5, -0.2).label, "Turnaround");
+
 const enriched = context.api.addEarningsDates_([{symbol:"AAPL"},{symbol:"MSFT"},{symbol:"NVDA"}], props);
 assert.deepEqual(enriched.map(row => row.earningsDate), ["2026-09-09", "2026-09-08", null]);
-console.log("PASS: bulk calendar parsing, universe mapping, earliest upcoming date, daily cache and response enrichment.");
+assert.deepEqual(enriched.map(row => row.epsOutlook && row.epsOutlook.label), ["Growing", "Contracting", null]);
+console.log("PASS: earnings calendar, cached EPS outlook calculation and response enrichment.");

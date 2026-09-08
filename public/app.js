@@ -47,11 +47,13 @@
   const DEMO_ROWS = [
     {
       symbol: "NVDA", company: "NVIDIA · DEMO", market: "NASDAQ", zone: "FVG",
-      candleFormation: "Bullish", price: 171.66, low: 169.80, high: 170.42, distance: 0.72, status: "Demo", demo: true
+      candleFormation: "Bullish", price: 171.66, low: 169.80, high: 170.42, distance: 0.72, status: "Demo", demo: true,
+      epsOutlook: { growthPct: 18.4, label: "Growing", estimate: 1.35, priorActual: 1.14 }
     },
     {
       symbol: "TSM", company: "TSMC · DEMO", market: "NYSE", zone: "FVG",
-      candleFormation: "Bearish", price: 235.18, low: 232.40, high: 233.60, distance: 0.68, status: "Demo", demo: true
+      candleFormation: "Bearish", price: 235.18, low: 232.40, high: 233.60, distance: 0.68, status: "Demo", demo: true,
+      epsOutlook: { growthPct: -8.2, label: "Contracting", estimate: 1.12, priorActual: 1.22 }
     }
   ];
 
@@ -205,6 +207,7 @@
       symbol, company, market, zone, candleFormation: formation, price, low, high, distance,
       formed: first(r, ["formed"], null),
       earningsDate: first(r, ["earningsDate","earnings_date","nextEarningsDate","next_earnings_date","earnings.date"], null),
+      epsOutlook: first(r, ["epsOutlook","eps_outlook"], null),
       status: suppliedStatus ? String(suppliedStatus) : null,
       demo: Boolean(r.demo),
       raw: r
@@ -261,6 +264,20 @@
     if (days < 0) return { text: "—", risk: "", exact: value };
     const text = days === 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`;
     return { text, risk: days <= 1 ? "earnings-high" : days <= 3 ? "earnings-caution" : "", exact: value };
+  }
+
+  function epsOutlookDisplay(value) {
+    if (!value || typeof value !== "object") return { text: "—", className: "", title: "EPS outlook unavailable" };
+    const label = String(value.label || "").trim();
+    const growth = num(value.growthPct);
+    if (!label) return { text: "—", className: "", title: "EPS outlook unavailable" };
+    const prefix = growth === null ? "" : `${growth > 0 ? "+" : ""}${fmt(growth, 1)}% `;
+    const estimate = num(value.estimate);
+    const prior = num(value.priorActual);
+    const title = estimate === null || prior === null
+      ? label
+      : `Upcoming EPS estimate ${fmt(estimate, 2)} vs ${fmt(prior, 2)} in the same quarter last year`;
+    return { text: `${prefix}${label}`, className: `eps-${label.toLowerCase()}`, title };
   }
 
   function currentQuarterLabel(now = new Date()) {
@@ -428,6 +445,7 @@
       const canNote = on || (r.distance !== null && Math.abs(r.distance) <= state.alertDistance);
       const note = typeof notes[r.symbol] === "string" ? notes[r.symbol] : "";
       const earnings = earningsDisplay(r.earningsDate);
+      const eps = epsOutlookDisplay(r.epsOutlook);
       return `<tr class="${on ? "interested" : ""}">
         <td class="num-col">${i + 1}</td>
         <td class="company-cell"><a class="company-link" href="${tradingViewUrl(r)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(r.symbol)} in TradingView"><span class="ticker">${escapeHtml(r.symbol)}</span>${r.company ? `<span class="company-separator">—</span><span class="company">${escapeHtml(r.company)}</span>` : ""}<span class="external-mark">↗</span></a></td>
@@ -435,6 +453,7 @@
         <td class="distance">${fmtDistance(r.distance)}</td>
         <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button>${canNote ? `<input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}">` : ""}</div></td>
         <td><span class="earnings ${earnings.risk}"${earnings.exact ? ` title="${escapeHtml(earnings.exact)}"` : ""}>${earnings.text}</span></td>
+        <td><span class="eps-outlook ${eps.className}" title="${escapeHtml(eps.title)}">${escapeHtml(eps.text)}</span></td>
         <td>${escapeHtml(r.market)}</td>
         <td class="zone-tag">${escapeHtml(r.zone)}</td>
         <td>${fmtFormed(r.formed)}</td>

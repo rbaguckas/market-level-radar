@@ -91,7 +91,7 @@ The Apps Script scanner can use Alpha Vantage only for upcoming earnings while k
 
 The integration requests the bulk three-month `EARNINGS_CALENDAR` CSV once per UTC day, keeps only dates for the configured 100-stock universe, and caches the resulting symbol-to-date map in Script Properties. Failed requests wait six hours before retrying.
 
-The same helper gradually builds the **EPS outlook** cache. It compares the upcoming quarter's consensus EPS estimate with reported EPS from the comparable quarter one year earlier. It processes up to 20 stocks per day, so a free key can fill the 100-stock universe over roughly five days without slowing the price scanner. Results are refreshed every 30 days or when the upcoming fiscal quarter changes.
+The same helper gradually builds the **EPS outlook** cache. It compares the upcoming quarter's consensus EPS estimate with reported EPS from the comparable quarter one year earlier. It processes up to 20 stocks per day, so a free key can fill the 100-stock universe over roughly five days without slowing the price scanner. Results are refreshed every 30 days or when the upcoming fiscal quarter changes. The dashboard also shows **EPS updated**: it uses a source date when the calendar feed provides one, otherwise it records the date the scanner first observed the current estimate and changes that date only when the estimate or fiscal quarter changes.
 
 If `Earnings.gs` was already added to Apps Script, replace it with the current version. Existing calls to `refreshEarningsCalendar_(props)` and `addEarningsDates_(rows, props)` do not need to change.
 Cloudflare deployment trigger.

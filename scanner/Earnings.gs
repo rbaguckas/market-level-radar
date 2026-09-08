@@ -32,7 +32,8 @@ function refreshEarningsCalendar_(props, force) {
   if (response.getResponseCode() !== 200) throw new Error('Alpha Vantage earnings request failed with HTTP ' + response.getResponseCode());
 
   const csv = response.getContentText();
-  const details = parseEarningsCalendarDetails_(csv, SYMBOLS, today);
+  const previousDetails = getEarningsEstimateDetails_(props);
+  const details = mergeEarningsEstimateDetails_(previousDetails, parseEarningsCalendarDetails_(csv, SYMBOLS, today), today);
   const dates = {};
   Object.keys(details).forEach(symbol => { dates[symbol] = details[symbol].reportDate; });
   if (!Object.keys(dates).length && csv.indexOf('symbol,') !== 0) throw new Error('Alpha Vantage did not return an earnings calendar');
@@ -58,6 +59,7 @@ function parseEarningsCalendarDetails_(csv, symbols, today) {
   const dateIndex = headers.indexOf('reportDate');
   const fiscalIndex = headers.indexOf('fiscalDateEnding');
   const estimateIndex = headers.indexOf('estimate');
+  const sourceDateIndex = ['estimateDate', 'updatedAt', 'lastUpdated'].map(name => headers.indexOf(name)).find(index => index >= 0);
   if (symbolIndex < 0 || dateIndex < 0) return {};
 
   const universe = new Set(symbols.map(symbol => String(symbol).toUpperCase()));
@@ -70,11 +72,34 @@ function parseEarningsCalendarDetails_(csv, symbols, today) {
       details[symbol] = {
         reportDate: date,
         fiscalDateEnding: fiscalIndex >= 0 ? String(row[fiscalIndex] || '').trim() : '',
-        estimate: estimateIndex >= 0 ? numberOrNull_(row[estimateIndex]) : null
+        estimate: estimateIndex >= 0 ? numberOrNull_(row[estimateIndex]) : null,
+        estimateSourceDate: sourceDateIndex >= 0 ? normalizeDate_(row[sourceDateIndex]) : null
       };
     }
   });
   return details;
+}
+
+function normalizeDate_(value) {
+  const match = String(value || '').trim().match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
+
+function mergeEarningsEstimateDetails_(previous, current, today) {
+  const merged = {};
+  Object.keys(current).forEach(symbol => {
+    const next = current[symbol];
+    const before = previous && previous[symbol];
+    const unchanged = before &&
+      before.fiscalDateEnding === next.fiscalDateEnding &&
+      numberOrNull_(before.estimate) === numberOrNull_(next.estimate);
+    const sourceDate = normalizeDate_(next.estimateSourceDate);
+    merged[symbol] = Object.assign({}, next, {
+      estimateUpdatedAt: sourceDate || (unchanged && normalizeDate_(before.estimateUpdatedAt)) || today,
+      estimateUpdatedSource: sourceDate ? 'source' : 'detected'
+    });
+  });
+  return merged;
 }
 
 function numberOrNull_(value) {
@@ -137,6 +162,8 @@ function buildEpsOutlook_(payload, upcoming) {
     priorActual: comparable.actual,
     fiscalDateEnding: upcoming.fiscalDateEnding,
     comparisonFiscalDate: comparable.date,
+    estimateUpdatedAt: normalizeDate_(upcoming.estimateUpdatedAt || upcoming.estimateSourceDate),
+    estimateUpdatedSource: upcoming.estimateUpdatedSource || (upcoming.estimateSourceDate ? 'source' : 'detected'),
     updatedAt: new Date().toISOString()
   });
 }

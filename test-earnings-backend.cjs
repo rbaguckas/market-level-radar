@@ -32,7 +32,7 @@ const context = vm.createContext({
   } },
   Set, Object, Array, JSON, Date, Error, Math, Number, isFinite, encodeURIComponent
 });
-vm.runInContext(source + ";globalThis.api={parseEarningsCalendar_,parseEarningsCalendarDetails_,calculateEpsOutlook_,buildEpsOutlook_,refreshEarningsCalendar_,addEarningsDates_};", context);
+vm.runInContext(source + ";globalThis.api={parseEarningsCalendar_,parseEarningsCalendarDetails_,mergeEarningsEstimateDetails_,calculateEpsOutlook_,buildEpsOutlook_,refreshEarningsCalendar_,addEarningsDates_};", context);
 
 const parsed = context.api.parseEarningsCalendar_(csv, context.SYMBOLS, "2026-09-07");
 assert.deepEqual({...parsed}, { AAPL: "2026-09-09", MSFT: "2026-09-08" });
@@ -82,6 +82,20 @@ assert.deepEqual(
   { growthPct: -16, label: "Contracting" }
 );
 assert.equal(context.api.calculateEpsOutlook_(0.5, -0.2).label, "Turnaround");
+
+const firstSeen = context.api.mergeEarningsEstimateDetails_({}, {
+  AAPL: { reportDate: "2026-09-09", fiscalDateEnding: "2026-06-30", estimate: 1.2, estimateSourceDate: null }
+}, "2026-09-07");
+assert.equal(firstSeen.AAPL.estimateUpdatedAt, "2026-09-07");
+assert.equal(firstSeen.AAPL.estimateUpdatedSource, "detected");
+const unchanged = context.api.mergeEarningsEstimateDetails_(firstSeen, {
+  AAPL: { reportDate: "2026-09-10", fiscalDateEnding: "2026-06-30", estimate: 1.2, estimateSourceDate: null }
+}, "2026-09-08");
+assert.equal(unchanged.AAPL.estimateUpdatedAt, "2026-09-07");
+const changed = context.api.mergeEarningsEstimateDetails_(unchanged, {
+  AAPL: { reportDate: "2026-09-10", fiscalDateEnding: "2026-06-30", estimate: 1.3, estimateSourceDate: null }
+}, "2026-09-09");
+assert.equal(changed.AAPL.estimateUpdatedAt, "2026-09-09");
 
 const enriched = context.api.addEarningsDates_([{symbol:"AAPL"},{symbol:"MSFT"},{symbol:"NVDA"}], props);
 assert.deepEqual(enriched.map(row => row.earningsDate), ["2026-09-09", "2026-09-08", null]);

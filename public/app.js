@@ -282,6 +282,19 @@
     return { text: `${prefix}${label}`, className: `eps-${label.toLowerCase()}`, title };
   }
 
+  function epsUpdatedDisplay(value) {
+    if (!value || typeof value !== "object") return { text: "—", title: "EPS update date unavailable" };
+    const raw = String(value.estimateUpdatedAt || value.estimateSourceDate || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return { text: "—", title: "EPS update date unavailable" };
+    const date = new Date(`${raw}T00:00:00Z`);
+    if (Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== raw) return { text: "—", title: "EPS update date unavailable" };
+    const source = value.estimateUpdatedSource === "source" ? "Estimate source date" : "Estimate change detected by scanner";
+    return {
+      text: date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric", timeZone: "UTC" }),
+      title: `${source}: ${raw}`
+    };
+  }
+
   function currentQuarterLabel(now = new Date()) {
     return `Q${Math.floor(now.getMonth() / 3) + 1} ${now.getFullYear()}`;
   }
@@ -450,6 +463,7 @@
       const note = typeof notes[r.symbol] === "string" ? notes[r.symbol] : "";
       const earnings = earningsDisplay(r.earningsDate);
       const eps = epsOutlookDisplay(r.epsOutlook);
+      const epsUpdated = epsUpdatedDisplay(r.epsOutlook);
       return `<tr class="${on ? "interested" : ""}">
         <td class="num-col" data-label="#">${i + 1}</td>
         <td class="company-cell" data-label="Company / ticker"><a class="company-link" href="${tradingViewUrl(r)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(r.symbol)} in TradingView"><span class="company-line"><span class="company">${escapeHtml(r.company || r.symbol)}</span><span class="external-mark">↗</span></span><span class="ticker">${escapeHtml(r.symbol)}</span></a></td>
@@ -458,6 +472,7 @@
         <td class="interest-cell" data-label="Interested"><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button><input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}"></div></td>
         <td data-label="Earnings"><span class="earnings ${earnings.risk}"${earnings.exact ? ` title="${escapeHtml(earnings.exact)}"` : ""}>${earnings.text}</span></td>
         <td data-label="EPS outlook"><span class="eps-outlook ${eps.className}" title="${escapeHtml(eps.title)}">${escapeHtml(eps.text)}</span></td>
+        <td data-label="EPS updated"><span class="eps-updated" title="${escapeHtml(epsUpdated.title)}">${escapeHtml(epsUpdated.text)}</span></td>
         <td data-label="Formed">${fmtFormed(r.formed)}</td>
         <td data-label="Price">${fmt(r.price)}</td>
       </tr>`;

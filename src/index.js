@@ -96,9 +96,11 @@ function cleanSharedState(value) {
     : [];
   const notes = {};
   if (value?.notes && typeof value.notes === "object" && !Array.isArray(value.notes)) {
-    for (const symbol of interested) {
-      const note = value.notes[symbol];
-      if (typeof note === "string" && note.trim()) notes[symbol] = note.slice(0, 120);
+    for (const [rawSymbol, note] of Object.entries(value.notes)) {
+      const symbol = String(rawSymbol).trim().toUpperCase();
+      if (/^[A-Z.\-]{1,12}$/.test(symbol) && typeof note === "string" && note.trim()) {
+        notes[symbol] = note.slice(0, 120);
+      }
     }
   }
   return { interested, notes };

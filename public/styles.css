@@ -224,4 +224,36 @@ dialog::backdrop { background: rgba(0,0,0,.7); backdrop-filter: blur(3px); }
   .toolbar { align-items: stretch; flex-direction: column; }
   .segmented { width: 100%; }
   .seg { flex: 1; }
+  .table-wrap { overflow: visible; padding: 10px; }
+  table, tbody { display: block; min-width: 0; }
+  thead { display: none; }
+  tbody { display: grid; gap: 10px; }
+  tbody tr {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 14px; border: 1px solid var(--line); border-radius: 12px;
+    background: #0c1117;
+  }
+  tbody tr.interested { border-color: rgba(216,255,104,.28); }
+  tbody tr:hover { background: #0f151d; }
+  tbody td {
+    display: flex; min-width: 0; padding: 9px 0; border: 0;
+    flex-direction: column; align-items: flex-start; gap: 5px; white-space: normal;
+  }
+  tbody td::before {
+    content: attr(data-label); color: var(--muted); font-size: 9px;
+    font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  }
+  tbody .num-col { display: none; }
+  tbody .company-cell, tbody .interest-cell { grid-column: 1 / -1; width: 100%; }
+  tbody .company-cell { padding-top: 0; padding-bottom: 11px; border-bottom: 1px solid var(--line); }
+  tbody .company-cell::before { display: none; }
+  .company-cell { min-width: 0; }
+  .company-link { width: 100%; }
+  .company { font-size: 16px; }
+  .ticker { font-size: .9rem; }
+  .interest-cell { padding-top: 11px; border-top: 1px solid var(--line); }
+  .interest-control { width: 100%; }
+  .interest-note { flex: 1; width: auto; }
+  .earnings, .eps-outlook { min-width: 0; }
+  .empty-state { padding: 26px 16px; }
 }

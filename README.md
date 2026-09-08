@@ -16,6 +16,7 @@ Static frontend migration of the Market Level Radar dashboard.
 - Per-stock Interested flag (`⚐` / `⚑`) and notes synchronized across signed-in devices
 - Upcoming earnings dates with relative risk labels when `earningsDate` is supplied by the scanner
 - Numbered rows
+- Company names and tickers link directly to the matching TradingView instrument
 - Priority column order: `#`, Company/Symbol, Status, Distance, Interested, then the remaining analysis fields
 - Configurable alert distance
 - Scanner Web App URL stored locally in the browser

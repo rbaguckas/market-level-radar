@@ -146,6 +146,9 @@ tbody tr.interested { background: rgba(216,255,104,.055); }
 .num-col { width: 50px; text-align: center; }
 td.num-col { color: var(--muted); }
 .company-cell { min-width: 180px; }
+.company-link { color: inherit; text-decoration: none; }
+.company-link:hover .company, .company-link:focus-visible .company { color: var(--blue); }
+.company-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 3px; }
 .company { font-weight: 800; }
 .ticker { color: var(--muted); font-size: 11px; margin-top: 3px; }
 .status {

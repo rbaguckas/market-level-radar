@@ -387,7 +387,7 @@
       const earnings = earningsDisplay(r.earningsDate);
       return `<tr class="${on ? "interested" : ""}">
         <td class="num-col">${i + 1}</td>
-        <td class="company-cell"><a class="company-link" href="${tradingViewUrl(r)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(r.symbol)} in TradingView"><div class="company">${escapeHtml(r.company)}</div><div class="ticker">${escapeHtml(r.symbol)} ↗</div></a></td>
+        <td class="company-cell"><a class="company-link" href="${tradingViewUrl(r)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(r.symbol)} in TradingView"><span class="ticker">${escapeHtml(r.symbol)}</span><span class="company-separator">—</span><span class="company">${escapeHtml(r.company)}</span><span class="external-mark">↗</span></a></td>
         <td><span class="status ${statusClass(st)}">${escapeHtml(st)}</span></td>
         <td class="distance">${fmtDistance(r.distance)}</td>
         <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button>${canNote ? `<input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}">` : ""}</div></td>

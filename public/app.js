@@ -7,6 +7,43 @@
     sharedStateMigrated: "mlr.sharedStateMigrated.v1"
   };
 
+  const STOCK_INFO = {
+    "AAPL": ["Apple", "NASDAQ"], "ABBV": ["AbbVie", "NYSE"], "ABT": ["Abbott Laboratories", "NYSE"],
+    "ADBE": ["Adobe", "NASDAQ"], "ADI": ["Analog Devices", "NASDAQ"], "ADP": ["Automatic Data Processing", "NASDAQ"],
+    "AMAT": ["Applied Materials", "NASDAQ"], "AMD": ["Advanced Micro Devices", "NASDAQ"], "AMGN": ["Amgen", "NASDAQ"],
+    "AMZN": ["Amazon", "NASDAQ"], "ANET": ["Arista Networks", "NYSE"], "APH": ["Amphenol", "NYSE"],
+    "AVGO": ["Broadcom", "NASDAQ"], "AXP": ["American Express", "NYSE"], "BAC": ["Bank of America", "NYSE"],
+    "BKNG": ["Booking Holdings", "NASDAQ"], "BLK": ["BlackRock", "NYSE"], "BMY": ["Bristol Myers Squibb", "NYSE"],
+    "BRK.B": ["Berkshire Hathaway", "NYSE"], "BSX": ["Boston Scientific", "NYSE"], "C": ["Citigroup", "NYSE"],
+    "CAT": ["Caterpillar", "NYSE"], "CB": ["Chubb", "NYSE"], "CL": ["Colgate-Palmolive", "NYSE"],
+    "CME": ["CME Group", "NASDAQ"], "COP": ["ConocoPhillips", "NYSE"], "COST": ["Costco Wholesale", "NASDAQ"],
+    "CRM": ["Salesforce", "NYSE"], "CSCO": ["Cisco Systems", "NASDAQ"], "CVX": ["Chevron", "NYSE"],
+    "DE": ["Deere & Company", "NYSE"], "DHR": ["Danaher", "NYSE"], "DIS": ["Walt Disney", "NYSE"],
+    "DUK": ["Duke Energy", "NYSE"], "ETN": ["Eaton", "NYSE"], "GD": ["General Dynamics", "NYSE"],
+    "GE": ["GE Aerospace", "NYSE"], "GILD": ["Gilead Sciences", "NASDAQ"], "GOOGL": ["Alphabet", "NASDAQ"],
+    "GS": ["Goldman Sachs", "NYSE"], "HD": ["Home Depot", "NYSE"], "HON": ["Honeywell", "NASDAQ"],
+    "IBM": ["IBM", "NYSE"], "ICE": ["Intercontinental Exchange", "NYSE"], "INTU": ["Intuit", "NASDAQ"],
+    "ISRG": ["Intuitive Surgical", "NASDAQ"], "JNJ": ["Johnson & Johnson", "NYSE"], "JPM": ["JPMorgan Chase", "NYSE"],
+    "KKR": ["KKR & Co.", "NYSE"], "KO": ["Coca-Cola", "NYSE"], "LLY": ["Eli Lilly", "NYSE"],
+    "LOW": ["Lowe's", "NYSE"], "LRCX": ["Lam Research", "NASDAQ"], "MA": ["Mastercard", "NYSE"],
+    "MCD": ["McDonald's", "NYSE"], "MCO": ["Moody's", "NYSE"], "MDT": ["Medtronic", "NYSE"],
+    "META": ["Meta Platforms", "NASDAQ"], "MMC": ["Marsh McLennan", "NYSE"], "MO": ["Altria Group", "NYSE"],
+    "MRK": ["Merck", "NYSE"], "MSFT": ["Microsoft", "NASDAQ"], "MU": ["Micron Technology", "NASDAQ"],
+    "NEE": ["NextEra Energy", "NYSE"], "NFLX": ["Netflix", "NASDAQ"], "NKE": ["Nike", "NYSE"],
+    "NOW": ["ServiceNow", "NYSE"], "NVDA": ["NVIDIA", "NASDAQ"], "ORCL": ["Oracle", "NYSE"],
+    "PANW": ["Palo Alto Networks", "NASDAQ"], "PEP": ["PepsiCo", "NASDAQ"], "PFE": ["Pfizer", "NYSE"],
+    "PG": ["Procter & Gamble", "NYSE"], "PGR": ["Progressive", "NYSE"], "PH": ["Parker-Hannifin", "NYSE"],
+    "PLD": ["Prologis", "NYSE"], "PM": ["Philip Morris International", "NYSE"], "QCOM": ["Qualcomm", "NASDAQ"],
+    "RTX": ["RTX", "NYSE"], "SBUX": ["Starbucks", "NASDAQ"], "SCHW": ["Charles Schwab", "NYSE"],
+    "SHW": ["Sherwin-Williams", "NYSE"], "SO": ["Southern Company", "NYSE"], "SPGI": ["S&P Global", "NYSE"],
+    "SYK": ["Stryker", "NYSE"], "T": ["AT&T", "NYSE"], "TJX": ["TJX Companies", "NYSE"],
+    "TMUS": ["T-Mobile US", "NASDAQ"], "TSLA": ["Tesla", "NASDAQ"], "TXN": ["Texas Instruments", "NASDAQ"],
+    "UBER": ["Uber Technologies", "NYSE"], "UNP": ["Union Pacific", "NYSE"], "UPS": ["UPS", "NYSE"],
+    "V": ["Visa", "NYSE"], "VRTX": ["Vertex Pharmaceuticals", "NASDAQ"], "VZ": ["Verizon", "NYSE"],
+    "WFC": ["Wells Fargo", "NYSE"], "WM": ["Waste Management", "NYSE"], "WMT": ["Walmart", "NYSE"],
+    "XOM": ["Exxon Mobil", "NYSE"]
+  };
+
   const DEMO_ROWS = [
     {
       symbol: "NVDA", company: "NVIDIA · DEMO", market: "NASDAQ", zone: "FVG",
@@ -152,10 +189,16 @@
     }
 
     const symbol = String(first(r, ["symbol","ticker","code"], `ROW${idx+1}`)).trim().toUpperCase();
-    const company = String(first(r, ["company","companyName","company_name","name"], symbol)).trim();
+    const suppliedCompany = String(first(r, ["company","companyName","company_name","name"], "")).trim();
+    const company = suppliedCompany && suppliedCompany.toUpperCase() !== symbol
+      ? suppliedCompany
+      : (STOCK_INFO[symbol]?.[0] || "");
     const zone = normalizeZone(first(r, ["zone","zoneType","zone_type","type","signalType","signal_type"], "—"));
     const formation = normalizeFormation(first(r, ["candleFormation","candle_formation","formation","direction","bias"], "—"));
-    const market = String(first(r, ["market","exchange","venue"], "—")).trim();
+    const suppliedMarket = String(first(r, ["market","exchange","venue"], "")).trim();
+    const market = (!suppliedMarket || suppliedMarket.toUpperCase() === "US")
+      ? (STOCK_INFO[symbol]?.[1] || suppliedMarket || "—")
+      : suppliedMarket;
     const suppliedStatus = first(r, ["status","state","signalStatus","signal_status"], null);
 
     return {
@@ -387,7 +430,7 @@
       const earnings = earningsDisplay(r.earningsDate);
       return `<tr class="${on ? "interested" : ""}">
         <td class="num-col">${i + 1}</td>
-        <td class="company-cell"><a class="company-link" href="${tradingViewUrl(r)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(r.symbol)} in TradingView"><span class="ticker">${escapeHtml(r.symbol)}</span><span class="company-separator">—</span><span class="company">${escapeHtml(r.company)}</span><span class="external-mark">↗</span></a></td>
+        <td class="company-cell"><a class="company-link" href="${tradingViewUrl(r)}" target="_blank" rel="noopener noreferrer" title="Open ${escapeHtml(r.symbol)} in TradingView"><span class="ticker">${escapeHtml(r.symbol)}</span>${r.company ? `<span class="company-separator">—</span><span class="company">${escapeHtml(r.company)}</span>` : ""}<span class="external-mark">↗</span></a></td>
         <td><span class="status ${statusClass(st)}">${escapeHtml(st)}</span></td>
         <td class="distance">${fmtDistance(r.distance)}</td>
         <td><div class="interest-control"><button class="interest-btn ${on ? "on" : ""}" data-interest="${escapeHtml(r.symbol)}" title="${on ? "Remove from Interested" : "Mark Interested"}">${on ? "⚑" : "⚐"}</button>${canNote ? `<input class="interest-note" data-note="${escapeHtml(r.symbol)}" value="${escapeHtml(note)}" maxlength="120" placeholder="Add note…" aria-label="Note for ${escapeHtml(r.symbol)}">` : ""}</div></td>

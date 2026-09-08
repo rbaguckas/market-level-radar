@@ -100,4 +100,5 @@ assert.equal(changed.AAPL.estimateUpdatedAt, "2026-09-09");
 const enriched = context.api.addEarningsDates_([{symbol:"AAPL"},{symbol:"MSFT"},{symbol:"NVDA"}], props);
 assert.deepEqual(enriched.map(row => row.earningsDate), ["2026-09-09", "2026-09-08", null]);
 assert.deepEqual(enriched.map(row => row.epsOutlook && row.epsOutlook.label), ["Growing", "Contracting", null]);
+assert.deepEqual(enriched.slice(0, 2).map(row => row.epsOutlook.estimateUpdatedAt), ["2026-09-07", "2026-09-07"]);
 console.log("PASS: earnings calendar, cached EPS outlook calculation and response enrichment.");

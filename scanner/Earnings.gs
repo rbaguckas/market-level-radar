@@ -233,10 +233,19 @@ function getEarningsDates_(props) {
 
 function addEarningsDates_(rows, props) {
   const dates = getEarningsDates_(props);
-  return rows.map(row => Object.assign({}, row, {
-    earningsDate: dates[row.symbol] || null,
-    epsOutlook: getEpsOutlook_(props, row.symbol)
-  }));
+  const estimates = getEarningsEstimateDetails_(props);
+  return rows.map(row => {
+    const outlook = getEpsOutlook_(props, row.symbol);
+    const estimate = estimates[row.symbol];
+    const enrichedOutlook = outlook && estimate ? Object.assign({}, outlook, {
+      estimateUpdatedAt: normalizeDate_(estimate.estimateUpdatedAt || estimate.estimateSourceDate),
+      estimateUpdatedSource: estimate.estimateUpdatedSource || (estimate.estimateSourceDate ? 'source' : 'detected')
+    }) : outlook;
+    return Object.assign({}, row, {
+      earningsDate: dates[row.symbol] || null,
+      epsOutlook: enrichedOutlook
+    });
+  });
 }
 
 function refreshEarningsCalendar() {

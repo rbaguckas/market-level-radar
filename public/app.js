@@ -3,7 +3,8 @@
     scannerUrl: "mlr.scannerUrl",
     alertDistance: "mlr.alertDistance",
     interested: "mlr.interested",
-    interestedNotes: "mlr.interestedNotes"
+    interestedNotes: "mlr.interestedNotes",
+    sharedStateMigrated: "mlr.sharedStateMigrated.v1"
   };
 
   const DEMO_ROWS = [
@@ -22,6 +23,11 @@
   let searchTerm = "";
   let scanProgress = { processed: 0, total: 100 };
   let feedConnected = false;
+  let sharedInterested = new Set();
+  let sharedNotes = {};
+  let saveQueue = Promise.resolve();
+  let saveRevision = 0;
+  let noteSaveTimer = null;
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -48,7 +54,8 @@
     dialogScannerUrl: $("dialogScannerUrl"),
     dialogAlertDistance: $("dialogAlertDistance"),
     dialogSave: $("dialogSaveBtn"),
-    disconnect: $("disconnectBtn")
+    disconnect: $("disconnectBtn"),
+    syncStatus: $("syncStatus")
   };
 
   const state = {
@@ -256,7 +263,88 @@
     return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   }
 
-  function interestedSet() { return state.interested; }
+  function interestedSet() { return sharedInterested; }
+
+  function setSyncStatus(text, error = false) {
+    els.syncStatus.textContent = text;
+    els.syncStatus.classList.toggle("sync-error", error);
+  }
+
+  function sharedPayload(merge = false) {
+    return { interested: [...sharedInterested], notes: sharedNotes, merge };
+  }
+
+  async function requestSharedState(method = "GET", body = null) {
+    const response = await fetch("/api/state", {
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store"
+    });
+    if (!response.ok) throw new Error(`Sync failed (${response.status})`);
+    return response.json();
+  }
+
+  function applySharedState(value) {
+    sharedInterested = new Set(Array.isArray(value?.interested) ? value.interested : []);
+    sharedNotes = value?.notes && typeof value.notes === "object" ? value.notes : {};
+  }
+
+  function saveSharedState() {
+    const payload = sharedPayload(false);
+    const revision = ++saveRevision;
+    setSyncStatus("Saving…");
+    saveQueue = saveQueue.then(async () => {
+      const saved = await requestSharedState("PUT", payload);
+      if (revision === saveRevision) {
+        applySharedState(saved);
+        setSyncStatus("Saved across devices");
+      }
+    }).catch(error => {
+      console.error(error);
+      setSyncStatus("Sync unavailable", true);
+    });
+    return saveQueue;
+  }
+
+  async function refreshSharedState() {
+    if (document.hidden || document.activeElement?.matches?.("[data-note]")) return;
+    try {
+      const remote = await requestSharedState();
+      applySharedState(remote);
+      setSyncStatus("Saved across devices");
+      render();
+    } catch (error) {
+      console.error(error);
+      setSyncStatus("Sync unavailable", true);
+    }
+  }
+
+  async function loadSharedState() {
+    setSyncStatus("Syncing…");
+    try {
+      let remote = await requestSharedState();
+      if (!localStorage.getItem(STORAGE.sharedStateMigrated)) {
+        const localInterested = state.interested;
+        const localNotes = state.interestedNotes;
+        if (localInterested.size || Object.keys(localNotes).length) {
+          applySharedState(remote);
+          for (const symbol of localInterested) sharedInterested.add(symbol);
+          sharedNotes = { ...sharedNotes, ...localNotes };
+          remote = await requestSharedState("PUT", sharedPayload(true));
+        }
+        localStorage.setItem(STORAGE.sharedStateMigrated, "1");
+      }
+      applySharedState(remote);
+      setSyncStatus("Saved across devices");
+    } catch (error) {
+      console.error(error);
+      sharedInterested = state.interested;
+      sharedNotes = state.interestedNotes;
+      setSyncStatus("Sync unavailable", true);
+    }
+    render();
+  }
 
   function filteredRows() {
     const q = searchTerm.trim().toLowerCase();
@@ -276,7 +364,7 @@
   function render() {
     els.quarterLabel.textContent = currentQuarterLabel();
     const interest = interestedSet();
-    const notes = state.interestedNotes;
+    const notes = sharedNotes;
     const list = filteredRows();
     const interestedCount = new Set(rows.filter(r => interest.has(r.symbol)).map(r => r.symbol)).size;
     interestedFilter.textContent = `Interested ${interestedCount}`;
@@ -308,17 +396,22 @@
         const set = interestedSet();
         const symbol = btn.dataset.interest;
         set.has(symbol) ? set.delete(symbol) : set.add(symbol);
+        sharedInterested = set;
         state.interested = set;
+        saveSharedState();
         render();
       });
     });
 
     els.body.querySelectorAll("[data-note]").forEach(input => {
       input.addEventListener("input", () => {
-        const notes = state.interestedNotes;
+        const notes = sharedNotes;
         const value = input.value.slice(0, 120);
         value ? notes[input.dataset.note] = value : delete notes[input.dataset.note];
         state.interestedNotes = notes;
+        sharedNotes = notes;
+        clearTimeout(noteSaveTimer);
+        noteSaveTimer = setTimeout(saveSharedState, 500);
       });
     });
 
@@ -460,11 +553,16 @@
   els.dialogScannerUrl.value = state.scannerUrl;
   els.dialogAlertDistance.value = String(state.alertDistance);
   render();
+  loadSharedState();
   if (state.scannerUrl) fetchScanner();
   if (typeof setInterval === "function") {
     setInterval(() => {
       els.quarterLabel.textContent = currentQuarterLabel();
       if (state.scannerUrl) fetchScanner();
     }, 60_000);
+    setInterval(refreshSharedState, 15_000);
   }
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshSharedState();
+  });
 })();

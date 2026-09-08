@@ -123,6 +123,8 @@ code { color: var(--accent); }
 .section-head h3 { margin-bottom: 0; }
 .section-head.compact { border: 0; padding: 0 0 18px; }
 .toolbar { display: flex; align-items: center; gap: 10px; }
+.sync-status { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+.sync-status.sync-error { color: var(--red); }
 .search { min-width: 240px; }
 .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
 .seg {

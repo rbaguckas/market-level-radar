@@ -79,6 +79,58 @@ function cookieValue(request) {
   return null;
 }
 
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff"
+    }
+  });
+}
+
+function cleanSharedState(value) {
+  const interested = Array.isArray(value?.interested)
+    ? [...new Set(value.interested.map(String).map(s => s.trim().toUpperCase()).filter(s => /^[A-Z.\-]{1,12}$/.test(s)))].slice(0, 1000)
+    : [];
+  const notes = {};
+  if (value?.notes && typeof value.notes === "object" && !Array.isArray(value.notes)) {
+    for (const symbol of interested) {
+      const note = value.notes[symbol];
+      if (typeof note === "string" && note.trim()) notes[symbol] = note.slice(0, 120);
+    }
+  }
+  return { interested, notes };
+}
+
+export class UserState {
+  constructor(ctx) { this.storage = ctx.storage; }
+
+  async fetch(request) {
+    const saved = await this.storage.get("state");
+    if (request.method === "GET") return json(saved || { interested: [], notes: {}, initialized: false });
+    if (request.method !== "PUT") return json({ error: "Method not allowed" }, 405);
+
+    let body;
+    try { body = await request.json(); }
+    catch { return json({ error: "Invalid JSON" }, 400); }
+
+    const incoming = cleanSharedState(body);
+    let next = incoming;
+    if (body?.merge === true && saved) {
+      const current = cleanSharedState(saved);
+      next = {
+        interested: [...new Set([...current.interested, ...incoming.interested])],
+        notes: { ...current.notes, ...incoming.notes }
+      };
+    }
+    const state = { ...next, initialized: true, updatedAt: new Date().toISOString() };
+    await this.storage.put("state", state);
+    return json(state);
+  }
+}
+
 async function validPin(submitted, expected) {
   if (typeof submitted !== "string" || typeof expected !== "string") return false;
   return equalBytes(await digest(submitted), await digest(expected));
@@ -116,6 +168,11 @@ export default {
     }
 
     if (!(await validCookie(request, env.SITE_PIN))) return pinPage();
+    if (url.pathname === "/api/state") {
+      if (request.method !== "GET" && request.method !== "PUT") return json({ error: "Method not allowed" }, 405);
+      const id = env.USER_STATE.idFromName("primary");
+      return env.USER_STATE.get(id).fetch(request);
+    }
     return env.ASSETS.fetch(request);
   }
 };

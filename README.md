@@ -13,7 +13,7 @@ Static frontend migration of the Market Level Radar dashboard.
 - `Candle formation` label instead of `Bias`
 - Case-insensitive partial ticker/company search
 - FVG and Interested filters
-- Per-stock Interested flag (`⚐` / `⚑`) stored locally in the browser
+- Per-stock Interested flag (`⚐` / `⚑`) and notes synchronized across signed-in devices
 - Upcoming earnings dates with relative risk labels when `earningsDate` is supplied by the scanner
 - Numbered rows
 - Priority column order: `#`, Company/Symbol, Status, Distance, Interested, then the remaining analysis fields
@@ -89,6 +89,10 @@ The Apps Script scanner can use Alpha Vantage only for upcoming earnings while k
 
 The integration requests the bulk three-month `EARNINGS_CALENDAR` CSV once per UTC day, keeps only dates for the configured 100-stock universe, and caches the resulting symbol-to-date map in Script Properties. Failed requests wait six hours before retrying.
 Cloudflare deployment trigger.
+
+## Shared flags and notes
+
+The Worker stores Interested flags and notes in a Durable Object. Existing browser-local flags and notes are merged once when each device first opens the synchronized version. All visitors using the private dashboard PIN share the same saved list. Other browser-only settings remain local to each device.
 
 ## PIN protection
 
